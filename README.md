@@ -98,14 +98,17 @@ such as **modelsummary** or **broom** for reporting.
 ``` r
 library(cif)
 data(diabetes.complications)
-output1 <- cif_curve(Event(t,epsilon) ~ fruitq1, data = diabetes.complications, outcome.type='COMPETING-RISK', error='delta', ggsurvfit.type = 'risk', label.y = 'CIF of diabetic retinopathy', label.x = 'Years from registration')
+output1 <- cif_curve(Event(t,epsilon) ~ fruitq, data = diabetes.complications, 
+           outcome.type='COMPETING-RISK', error='delta', ggsurvfit.type = 'risk', 
+           label.y = 'CIF of diabetic retinopathy', label.x = 'Years from registration')
 ```
 
 <img src="man/figures/README-syntax-1.png" width="100%" />
 
 ``` r
-output2 <- cif_reg(nuisance.model = Event(t,epsilon) ~ +1, exposure = 'fruitq1', data = diabetes.complications,
-          effect.measure1='RR', effect.measure2='RR', time.point=8, outcome.type='COMPETING-RISK')
+output2 <- cif_reg(nuisance.model = Event(t,epsilon) ~ +1, exposure = 'fruitq', 
+           data = diabetes.complications, effect.measure1='RR', effect.measure2='RR', 
+           time.point=8, outcome.type='COMPETING-RISK')
 ```
 
 ## Installation
@@ -224,16 +227,18 @@ outcomes of individual observations.
 ## Example 1. Unadjusted competing risks analysis
 
 For the initial illustration, unadjusted analysis focusing on cumulative
-incidence probabilities of event 1 and 2 at 8 years of follow-up is
+incidence probabilities of diabetic retinopathy (event 1) and
+macro-vascular complications (event 2) at 8 years of follow-up is
 demonstrated. Regression coefficients and variance covariance matrix of
 both exposure (fruitq1) and covariates (intercept in this case) in the
-fitted direct polytomous regression are presented.
+fitted log-odds product models are presented.
 
 ``` r
 library(cif)
 data(diabetes.complications)
-cif_curve(Event(t,epsilon) ~ fruitq1, data = diabetes.complications, outcome.type='COMPETING-RISK', error='delta', 
-          ggsurvfit.type = 'risk', label.y = 'CIF of diabetic retinopathy', label.x = 'Years from registration')
+cif_curve(Event(t,epsilon) ~ fruitq1, data = diabetes.complications, 
+          outcome.type='COMPETING-RISK', error='delta', ggsurvfit.type = 'risk', 
+          label.y = 'CIF of diabetic retinopathy', label.x = 'Years from registration')
 ```
 
 <img src="man/figures/README-example1-1.png" width="100%" />
@@ -371,10 +376,12 @@ msummary(output$summary, statistic = c("conf.int", "p.value"), exponentiate = TR
 ## Example 2. Survival analysis
 
 The second example is time to first event analysis
-(outcome.type=‘SURVIVAL’) to estimate the effects on the risk of
+(`outcome.type='SURVIVAL'`) to estimate the effect on the risk of
 diabetic retinopathy or macrovascular complications at 8 years.
-Estimates other than the effects of exposure (e.g. intercept) are
-suppressed when `report.nuisance.parameter` is not specified.
+Dependent censoring is adjusted by stratified IPCW method
+(`strata='strata'`). Estimates other than the effects of exposure
+(e.g. intercept) are suppressed when `report.nuisance.parameter` is not
+specified.
 
 ``` r
 data(diabetes.complications)
@@ -397,12 +404,11 @@ msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
 | converged.by     | Converged in objective function |
 | nleqslv.message  | Function criterion near zero    |
 
-## Example 3. Competing risks analysis
+## Example 3. Adjusted competing risks analysis
 
-The code below specifies direct polytomous regression of both of
-competing events (outcome.type=‘COMPETING-RISK’). Here 15 covariates and
-censoring strata are specified in nuisance.model= and strata=,
-respectively.
+The code below specifies polytomous log-odds models of both of competing
+events (outcome.type=‘COMPETING-RISK’). Here 15 covariates and censoring
+strata are specified in `nuisance.model=` and `strata=`, respectively.
 
 ``` r
 output <- cif_reg(nuisance.model = Event(t,epsilon) ~ age+sex+bmi+hba1c+diabetes_duration
@@ -503,10 +509,10 @@ msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
   validate non-negative times, check that the event codes match the
   user-specified `code.event*` arguments, and derive indicators used
   downstream.
-- The `outcome.type` argument is normalised by the same utility, meaning
-  that the same set of synonyms (e.g. `"C"`, `"COMPETING-RISK"`,
-  `"SURVIVAL"`, etc.) are accepted in both workflows and mapped onto the
-  canonical labels used in the estimators.
+- The `outcome.type` argument is normalized by the same utility, meaning
+  that the same set of synonyms (e.g. `"C"`, `"competing risk"`, or
+  `"S"`) are accepted in both workflows and mapped onto the canonical
+  labels used in the estimators.
 
 **Key differences**
 
@@ -516,18 +522,19 @@ msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
   all strata are handled through the formula term that is turned into a
   factor for plotting and estimation.
 - In `cif_reg()` the `nuisance.model` formula describes only the outcome
-  and nuisance covariates, while the exposure is passed separately
-  through the `exposure` argument. The exposure design matrix, reference
-  level handling, and scaling of nuisance covariates are handled
-  explicitly for regression fitting.
+  and nuisance covariates (i.e. confounders), while the exposure is
+  passed separately through the `exposure` argument. The exposure design
+  matrix, reference level handling, and scaling of nuisance covariates
+  are handled explicitly for regression fitting.
 - `cif_curve()` focuses on two estimands, selecting between Kaplan–Meier
   and Aalen–Johansen calculations via `outcome.type = "SURVIVAL"` or
   `"COMPETING-RISK"`. In contrast, `cif_reg()` supports additional
-  longitudinal and binomial estimands (`"PROPORTIONAL"`,
+  time-constant and binomial estimands (`"PROPORTIONAL"`,
   `"POLY-PROPORTIONAL"`, `"BINOMIAL"`) and enforces time-point
   requirements accordingly—for example `time.point` is mandatory for
-  survival/competing-risk contrasts, while proportional-effect models
-  can infer a grid of follow-up times when the argument is omitted.
+  survival/competing-risk contrasts, while time-constant-effect models
+  can infer all event time or a use-specified grid of time passing a
+  vector using `time.point`.
 
 ### Variance and confidence interval options for `cif_curve()`
 
@@ -550,21 +557,21 @@ standard errors from `survfit`.
 
 **Confidence intervals.** `calculateCI()` constructs intervals on the
 probability scale using the requested transformation:
-`"arcsine-square root"`/`"a"` (default), `"plain`, `"log"`, `"log-log"`,
-or `"logit"`. Passing `"none"`/`"n"` skips interval computation
-entirely. The function exponentiates back to the probability scale,
-clips bounds to \[0, 1\], and replaces undefined values with `NA` so
-that interval endpoints remain well behaved in plots and summaries.
+`"arcsine-square root"`/`"arcsine"`/`"a"` (default), `"plain`, `"log"`,
+`"log-log"`, or `"logit"`. Passing `"none"`/`"n"` skips interval
+computation entirely. The function exponentiates back to the probability
+scale, clips bounds to \[0, 1\], and replaces undefined values with `NA`
+so that interval endpoints remain well behaved in plots and summaries.
 
 ### Key arguments of `msummary()` that are helpful when reporting `cif_reg()` results
 
-- `output` – controls the destination of the table (e.g., `'markdown'`,
-  `'latex'`, `'html'`, or a file path such as
+- `output` – controls the destination of the table (e.g., `"markdown"`,
+  `"latex"`, `"html"`, or a file path such as
   `'results/cif_table.docx'`).
 - `coef_map` or `coef_rename` – renames model terms for
   interpretability.
 - `statistic` – specifies which uncertainty estimates to display. For
-  example, `statistic = '"p.value'`shows p-values instead of standard
+  example, `statistic = "p.value"` shows p-values instead of standard
   errors.
 
 You can also supply multiple model summaries as a named list to compare
