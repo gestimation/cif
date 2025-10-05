@@ -14,6 +14,8 @@ Config/testthat/edition: 3
 LinkingTo: 
     Rcpp
 Imports: 
-    Rcpp
+    Rcpp, nleqslv, boot, ggsurvfit
+Suggested:
+    ggplot2, modelsummary
 URL: https://github.com/gestimation/cif
 BugReports: https://github.com/gestimation/cif/issues
