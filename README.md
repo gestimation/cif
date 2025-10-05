@@ -95,6 +95,19 @@ such as **modelsummary** or **broom** for reporting.
 
 ### An example of usage
 
+``` r
+library(cif)
+data(diabetes.complications)
+output1 <- cif_curve(Event(t,epsilon) ~ fruitq1, data = diabetes.complications, outcome.type='COMPETING-RISK', error='delta', ggsurvfit.type = 'risk', label.y = 'CIF of diabetic retinopathy', label.x = 'Years from registration')
+```
+
+<img src="man/figures/README-syntax-1.png" width="100%" />
+
+``` r
+output2 <- cif_reg(nuisance.model = Event(t,epsilon) ~ +1, exposure = 'fruitq1', data = diabetes.complications,
+          effect.measure1='RR', effect.measure2='RR', time.point=8, outcome.type='COMPETING-RISK')
+```
+
 ## Installation
 
 The package is implemented in R and relies on `Rcpp`, `nleqslv` and
@@ -120,48 +133,48 @@ reproduce the examples below.
 
 The model for cif_reg() is specified by three main components:
 
-(1)Nuisance model: Describes the relationship between outcomes and
-covariates (excluding exposure).
+- Nuisance model: Describes the relationship between outcomes and
+  covariates (excluding exposure).
 
-(2)Effect measures and time points: Defines the exposure effect to be
-estimated and the time point of interest.
+- Effect measures and time points: Defines the exposure effect to be
+  estimated and the time point of interest.
 
-(3)Censoring adjustment: Specifies strata for inverse probability
-weighting to adjust for dependent censoring.
+- Censoring adjustment: Specifies strata for inverse probability
+  weighting to adjust for dependent censoring.
 
 ### 1. Nuisance Model
 
 The nuisance.model argument specifies the formula linking the outcome to
 covariates. Its format depends on the outcome type:
 
-(1)Competing risks or survival outcome: Use Surv() or Event() with time
-and status variables.
+- Competing risks or survival outcome: Use Surv() or Event() with time
+  and status variables.
 
-(2)Binomial outcome: Use standard R formula notation.
+- Binomial outcome: Use standard R formula notation.
 
 Default event codes:
 
-(1)Competing risks outcome: 1 and 2 for event types, 0 for censored
-observations.
+- Competing risks outcome: 1 and 2 for event types, 0 for censored
+  observations.
 
-(2)Survival outcome: 1 for events, 0 for censored observations.
+- Survival outcome: 1 for events, 0 for censored observations.
 
-(3)Binomial outcome: 0 and 1.
+- Binomial outcome: 0 and 1.
 
 Event codes can be customized using code.event1, code.event2, and
 code.censoring. The outcome.type argument must be set to:
 
-(1)Effects on cumulative incidence probabilities at a specific time:
-‘COMPETING-RISK’
+- Effects on cumulative incidence probabilities at a specific time:
+  ‘COMPETING-RISK’
 
-(2)Effects on a risk at a specific time: ‘SURVIVAL’
+- Effects on a risk at a specific time: ‘SURVIVAL’
 
-(3)Common effects on cumulative incidence probabilities over time:
-‘POLY-PROPORTIONAL’
+- Common effects on cumulative incidence probabilities over time:
+  ‘POLY-PROPORTIONAL’
 
-(4)Common effects on a risk over time: ‘PROPORTIONAL’
+- Common effects on a risk over time: ‘PROPORTIONAL’
 
-(5)Effects on a risk of a binomial outcome: ‘BINOMIAL’
+- Effects on a risk of a binomial outcome: ‘BINOMIAL’
 
 Covariates included in nuisance.model should adjust for confounding
 factors to obtain unbiased exposure effect estimates.
@@ -170,11 +183,11 @@ factors to obtain unbiased exposure effect estimates.
 
 Three effect measures available:
 
-(1)Risk Ratio (RR)
+- Risk Ratio (RR)
 
-(2)Odds Ratio (OR)
+- Odds Ratio (OR)
 
-(3)Sub-distribution Hazard Ratio (SHR)
+- Sub-distribution Hazard Ratio (SHR)
 
 Set the desired measure using effect.measure1 and, for competing risks
 analysis, effect.measure2. The time.point argument specifies the
@@ -182,22 +195,22 @@ follow-up time at which effects are estimated.
 
 ### 3. Censoring adjustment
 
-Inverse probability weights adjust for dependent censoring. Use the
-strata argument to specify stratification variables. If no strata are
+Inverse probability weights adjust for dependent censoring. Use
+`strata=` to specify stratification variables. If no strata are
 specified, Kaplan-Meier weights are used.
 
 ## Output
 
 The main components of the output list include:
 
-(1)coefficient: Regression coefficients
+- coefficient: Regression coefficients
 
-(2)cov: Variance-covariance matrix
+- cov: Variance-covariance matrix
 
-(3)diagnosis.statistics: Inverse probability weights, influence
-functions, and predicted potential outcomes
+- diagnosis.statistics: Inverse probability weights, influence
+  functions, and predicted potential outcomes
 
-(4)summary: Summary of estimated exposure effects
+- summary: Summary of estimated exposure effects
 
 Use the summary output with `msummary()` to display formatted results.
 The regression coefficients and their variance-covariance matrix are
@@ -219,13 +232,14 @@ fitted direct polytomous regression are presented.
 ``` r
 library(cif)
 data(diabetes.complications)
-cif_curve(Event(t,epsilon) ~ fruitq1, data = diabetes.complications, outcome.type='C', error='delta', ggsurvfit.type = 'risk', label.y = 'CIF of diabetic retinopathy', label.x = 'Years from registration')
+cif_curve(Event(t,epsilon) ~ fruitq1, data = diabetes.complications, outcome.type='COMPETING-RISK', error='delta', 
+          ggsurvfit.type = 'risk', label.y = 'CIF of diabetic retinopathy', label.x = 'Years from registration')
 ```
 
 <img src="man/figures/README-example1-1.png" width="100%" />
 
     #> Call: cif_curve(formula = Event(t, epsilon) ~ fruitq1, data = diabetes.complications, 
-    #>     outcome.type = "C", error = "delta", ggsurvfit.type = "risk", 
+    #>     outcome.type = "COMPETING-RISK", error = "delta", ggsurvfit.type = "risk", 
     #>     label.x = "Years from registration", label.y = "CIF of diabetic retinopathy")
     #> 
     #>   records   n events median LCL UCL
@@ -233,8 +247,9 @@ cif_curve(Event(t,epsilon) ~ fruitq1, data = diabetes.complications, outcome.typ
     #> 1     258 257     92     NA  NA  NA
 
 ``` r
-output <- cif_reg(nuisance.model = Event(t,epsilon) ~ +1, exposure = 'fruitq1', data = diabetes.complications,
-          effect.measure1='RR', effect.measure2='RR', time.point=8, outcome.type='COMPETING-RISK', report.nuisance.parameter = TRUE)
+output <- cif_reg(nuisance.model = Event(t,epsilon) ~ +1, exposure = 'fruitq1', 
+                  data = diabetes.complications, effect.measure1='RR', effect.measure2='RR', 
+                  time.point=8, outcome.type='COMPETING-RISK', report.nuisance.parameter = TRUE)
 print(output$coefficient)
 #> [1] -1.38313159  0.30043942 -3.99147405  0.07582595
 print(output$cov)
@@ -258,7 +273,7 @@ using `exponentiate` option. The summaries can be displayed in Viewer
 with customized statistics such as p-values or confidence intervals.
 
 ``` r
-msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
+msummary(output$summary, statistic = c("conf.int", "p.value"), exponentiate = TRUE)
 ```
 
 <table style="width:97%;">
@@ -286,6 +301,11 @@ msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
 <td>[0.014, 0.024]</td>
 </tr>
 <tr>
+<td></td>
+<td>(&lt;0.001)</td>
+<td>(&lt;0.001)</td>
+</tr>
+<tr>
 <td>fruitq1, 1 vs 0</td>
 <td>1.350</td>
 <td>1.079</td>
@@ -294,6 +314,11 @@ msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
 <td></td>
 <td>[1.114, 1.637]</td>
 <td>[0.682, 1.707]</td>
+</tr>
+<tr>
+<td></td>
+<td>(0.002)</td>
+<td>(0.746)</td>
 </tr>
 <tr>
 <td>effect.measure</td>
@@ -539,8 +564,8 @@ that interval endpoints remain well behaved in plots and summaries.
 - `coef_map` or `coef_rename` – renames model terms for
   interpretability.
 - `statistic` – specifies which uncertainty estimates to display. For
-  example, `statistic = '{conf.low}, {conf.high}'` shows confidence
-  interval bounds instead of standard errors.
+  example, `statistic = '"p.value'`shows p-values instead of standard
+  errors.
 
 You can also supply multiple model summaries as a named list to compare
 estimates across specifications in a single table. See
