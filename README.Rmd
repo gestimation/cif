@@ -146,7 +146,7 @@ Use the summary output with msummary() to display formatted results. The regress
 
 ## Example 1. Unadjusted competing risks analysis
 
-For the initial illustration, unadjusted analysis focusing on cumulative incidence probabilities of event 1 and 2 at 8 years is demonstrated. Regression coefficients and variance covariance matrix of both exposure (fruitq1) and covariates (intercept in this case) in the fitted direct polytomous regression are presented. 
+For the initial illustration, unadjusted analysis focusing on cumulative incidence probabilities of event 1 and 2 at 8 years of follow-up is demonstrated. Regression coefficients and variance covariance matrix of both exposure (fruitq1) and covariates (intercept in this case) in the fitted direct polytomous regression are presented. 
 
 ```{r example1}
 library(cif)
@@ -161,7 +161,7 @@ print(output$coefficient)
 print(output$cov)
 ```
 
-The summaries of analysis results in the list of outputs (e.g. output$summary below) are in accordance with the format of model summary function. All regression coefficients above are included in summary by setting report.nuisance.parameter = TRUE. Model summary may be used to converted to risk ratios, odds ratios or sub-distribution hazards ratios using exponentiate=TRUE option. The summaries can be displayed in Viewer with customized statistics such as p-values or confidence intervals. 
+The summaries of analysis results in the list of outputs (e.g. output$summary below) are in accordance with the format of model summary function. All regression coefficients are included in summary by setting report.nuisance.parameter = TRUE. Model summary may be used to converted to risk ratios, odds ratios or sub-distribution hazards ratios using exponentiate=TRUE option. The summaries can be displayed in Viewer with customized statistics such as p-values or confidence intervals. 
 
 ```{r example3}
 msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
@@ -169,7 +169,7 @@ msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
 
 ## Example 2. Survival analysis
 
-The second example is survival analysis (outcome.type='SURVIVAL') to estimate the effects on the risk of diabetic retinopathy at 8 years of follow-up, treating macrovascular complications as censoring. 
+The second example is time to first event analysis (outcome.type='SURVIVAL') to estimate the effects on the risk of diabetic retinopathy or macrovascular complications at 8 years. Estimates other than the effects of exposure (e.g. intercept) are suppressed when report.nuisance.parameter = TRUE is not specified. 
 
 ```{r example4}
 data(diabetes.complications)
@@ -177,11 +177,12 @@ diabetes.complications$d <- (diabetes.complications$epsilon>0)
 output <- cif_reg(nuisance.model = Event(t,d) ~ +1, 
           exposure = 'fruitq1', strata='strata', data = diabetes.complications,
           effect.measure1='RR', time.point=8, outcome.type='SURVIVAL')
+msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
 ```
 
 ## Example 3. Competing risks analysis
 
-The code below specifies direct polytomous regression of both of competing events (outcome.type='COMPETINGRISK'). 15 covariates and censoring strata are specified in nuisance.model= and strata=, respectively.
+The code below specifies direct polytomous regression of both of competing events (outcome.type='COMPETINGRISK'). Here 15 covariates and censoring strata are specified in nuisance.model= and strata=, respectively.
 
 ```{r example5}
 output <- cif_reg(nuisance.model = Event(t,epsilon) ~ age+sex+bmi+hba1c+diabetes_duration
