@@ -20,7 +20,7 @@ estimating_equation_ipcw <- function(
   t <- Y[, 1]
   epsilon <- Y[, 2]
   if (!is.null(offsetpos <- attributes(out_terms)$specials$offset)) {
-    ts <- survival::untangle.specials(out_terms, "offset")
+    ts <- untangle.specials(out_terms, "offset")
     if (length(ts$vars) > 0) {
       out_terms <- out_terms[-ts$terms]
       offset <- mf[[ts$vars]]
@@ -274,7 +274,7 @@ estimating_equation_survival <- function(
     epsilon <- Y[, 2]
   }
   if (!is.null(offsetpos <- attributes(Terms)$specials$offset)) {
-    ts <- survival::untangle.specials(Terms, "offset")
+    ts <- untangle.specials(Terms, "offset")
     if (length(ts$vars) > 0) {
       Terms <- Terms[-ts$terms]
       offset <- mf[[ts$vars]]
@@ -443,7 +443,7 @@ estimating_equation_proportional <- function(
     epsilon <- Y[, 2]
   }
   if (!is.null(offsetpos <- attributes(Terms)$specials$offset)) {
-    ts <- survival::untangle.specials(Terms, "offset")
+    ts <- untangle.specials(Terms, "offset")
     if (length(ts$vars) > 0) {
       Terms <- Terms[-ts$terms]
       offset <- mf[[ts$vars]]
@@ -547,7 +547,7 @@ estimating_equation_pproportional <- function(
   t <- Y[, 1]
   epsilon <- Y[, 2]
   if (!is.null(offsetpos <- attributes(Terms)$specials$offset)) {
-    ts <- survival::untangle.specials(Terms, "offset")
+    ts <- untangle.specials(Terms, "offset")
     if (length(ts$vars) > 0) {
       Terms <- Terms[-ts$terms]
       offset <- mf[[ts$vars]]

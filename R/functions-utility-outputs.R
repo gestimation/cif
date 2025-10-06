@@ -135,7 +135,68 @@ glance_df <- function(
   }
 }
 
+
 getCoefTerm <- function(report.nuisance.parameter, report.sandwich.conf, report.boot.conf, nuisance.model, outcome.type, exposure, estimand, alpha_beta_estimated, cov_estimated, out_bootstrap, conf.level, out_getResults) {
+  index.vector <- estimand$index.vector
+  code.exposure.ref <- as.character(estimand$code.exposure.ref)
+
+  if (outcome.type == "COMPETING-RISK") {
+    if (report.nuisance.parameter == TRUE) {
+      index1 <- seq_len(index.vector[3])
+      index2 <- seq.int(index.vector[4], index.vector[7])
+      nuisance_terms <- c("Intercept", attr(terms(nuisance.model), "term.labels"))
+    } else {
+      index1 <- seq.int(index.vector[2], index.vector[3])
+      index2 <- seq.int(index.vector[6], index.vector[7])
+      nuisance_terms <- character(0)
+    }
+  }
+  if (outcome.type == "SURVIVAL" || outcome.type == "BINOMIAL") {
+    if (report.nuisance.parameter == TRUE) {
+      index1 <- seq_len(index.vector[3])
+      index2 <- NULL
+      nuisance_terms <- c("Intercept", attr(terms(nuisance.model), "term.labels"))
+    } else {
+      index1 <- seq.int(index.vector[2], index.vector[3])
+      index2 <- NULL
+      nuisance_terms <- character(0)
+    }
+  }
+  if (outcome.type == "POLY-PROPORTIONAL") {
+    if (report.nuisance.parameter == TRUE) {
+      index1 <- seq_len(index.vector[8]/2)
+      index2 <- seq.int(index.vector[8]/2+1, index.vector[8])
+      nuisance_terms <- c("Intercept", attr(terms(nuisance.model), "term.labels"))
+    } else {
+      index1 <- seq.int(index.vector[8]/2-estimand$exposure.levels+2, index.vector[8]/2)
+      index2 <- seq.int(index.vector[8]-estimand$exposure.levels+2, index.vector[8])
+      nuisance_terms <- character(0)
+    }
+  }
+  if (outcome.type == "PROPORTIONAL") {
+    if (report.nuisance.parameter == TRUE) {
+      index1 <- seq_len(index.vector[8]/2)
+      index2 <- NULL
+      nuisance_terms <- c("Intercept", attr(terms(nuisance.model), "term.labels"))
+    } else {
+      index1 <- seq.int(index.vector[8]/2-estimand$exposure.levels+2, index.vector[8]/2)
+      index2 <- NULL
+      nuisance_terms <- character(0)
+    }
+  }
+  coef1 <- getCoef(index1, alpha_beta_estimated, cov_estimated, report.sandwich.conf, report.boot.conf, out_bootstrap, conf.level)
+  coef2 <- getCoef(index2, alpha_beta_estimated, cov_estimated, report.sandwich.conf, report.boot.conf, out_bootstrap, conf.level)
+  code.exposure.nonref <- colnames(out_getResults$x_a)
+  terms_text_exposure <- if (length(code.exposure.nonref)) {
+    paste0(exposure, ", ", sub("^.*_", "", code.exposure.nonref), " vs ", code.exposure.ref)
+  } else {
+    character(0)
+  }
+  terms_text <- c(nuisance_terms, terms_text_exposure)
+  return(list(coef1=coef1, coef2=coef2, terms_text=terms_text))
+}
+
+getCoefTerm_ <- function(report.nuisance.parameter, report.sandwich.conf, report.boot.conf, nuisance.model, outcome.type, exposure, estimand, alpha_beta_estimated, cov_estimated, out_bootstrap, conf.level, out_getResults) {
   index.vector <- estimand$index.vector
   code.exposure.ref <- as.character(estimand$code.exposure.ref)
   if (report.nuisance.parameter == TRUE) {
@@ -213,6 +274,52 @@ create_rr_text <- function(coefficient, cov, index, omit.conf.int=TRUE, conf.int
     else text <- paste0("RR=", round(exp(coef), digit=2), " (", round(exp(conf_low), digit=2), " to ", round(exp(conf_high), digit=2), ", p=", p_value, ")")
   }
   return(text)
+}
+
+check_ggsurvfit <- function(
+    survfit_object,
+    lims.x, lims.y,
+    ggsurvfit.type = NULL,
+    addConfidenceInterval = TRUE,
+    addCensorMark = TRUE,
+    addIntercurrentEventMark = TRUE,
+    shape.censor.mark = 3,
+    shape.intercurrent.event.mark = 16
+){
+  if (isTRUE(addCensorMark) && isTRUE(addIntercurrentEventMark) &&
+      !is.null(shape.censor.mark) && !is.null(shape.intercurrent.event.mark) &&
+      identical(shape.censor.mark, shape.intercurrent.event.mark)) {
+    warning("shape.censor.mark and shape.intercurrent.event.mark specify an idencical type of symbol")
+  }
+  if (!is.null(lims.x) && length(lims.x) == 2 && is.numeric(lims.x)) {
+    tmax <- suppressWarnings(max(survfit_object$time, na.rm = TRUE))
+    if (is.finite(tmax) && (tmax < lims.x[1] || tmax > lims.x[2])) {
+      warning(sprintf("Max of survfit_object$time (%.4g) is out of lims.x=[%.4g, %.4g]",
+                      tmax, lims.x[1], lims.x[2]))
+    }
+  }
+  if (!is.null(lims.y) && length(lims.y) == 2 && is.numeric(lims.y)) {
+    surv <- survfit_object$surv
+    upper <- survfit_object$upper
+    lower <- survfit_object$lower
+    if (identical(ggsurvfit.type, "risk")) {
+      surv  <- 1 - surv
+      if (!is.null(upper)) upper <- 1 - upper
+      if (!is.null(lower)) lower <- 1 - lower
+    }
+
+    if (any(surv < lims.y[1] | surv > lims.y[2], na.rm = TRUE)) {
+      warning(sprintf("Some point estimates are out of lims.y=[%.4g, %.4g]", lims.y[1], lims.y[2]))
+    }
+    if (isTRUE(addConfidenceInterval)) {
+      if (!is.null(upper) && any(upper < lims.y[1] | upper > lims.y[2], na.rm = TRUE)) {
+        warning(sprintf("Some upper confidence limits are lims.y=[%.4g, %.4g]", lims.y[1], lims.y[2]))
+      }
+      if (!is.null(lower) && any(lower < lims.y[1] | lower > lims.y[2], na.rm = TRUE)) {
+        warning(sprintf("Some lower confidence limits are lims.y=[%.4g, %.4g]", lims.y[1], lims.y[2]))
+      }
+    }
+  }
 }
 
 `%||%` <- function(x, y) if (is.null(x)) y else x

@@ -1,5 +1,5 @@
-#' @title Regression models of cumulative incidence functions using polytomous
-#' log-odds products for survival and competing risks data
+#' @title Fit regression models of cumulative incidence functions based on polytomous
+#' log-odds products
 #' @description Fits regression models and estimates multiplicative effects of
 #' a categorical exposure under several outcome types, including competing risks,
 #' survival and binomial endpoints.
@@ -108,7 +108,7 @@
 #'
 #' @examples
 #' data(diabetes.complications)
-#' output <- polyreg(
+#' output <- cif_reg(
 #'   nuisance.model = Event(t, epsilon) ~ +1,
 #'   exposure = "fruitq1",
 #'   data = diabetes.complications,
@@ -117,8 +117,9 @@
 #'   time.point = 8,
 #'   outcome.type = "COMPETING-RISK"
 #' )
-#' library(modelsummary)
-#' msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
+#' if (requireNamespace("modelsummary", quietly = TRUE)) {
+#' modelsummary::msummary(output$summary, statistic = c("conf.int", "p.value"), exponentiate = TRUE)
+#' }
 cif_reg <- function(
     nuisance.model,
     exposure,
@@ -177,6 +178,7 @@ cif_reg <- function(
   out_normalizeCovariate <- normalizeCovariate(nuisance.model, data, should.normalize.covariate, outcome.type, ci$out_defineExposureDesign$exposure.levels)
   normalized_data <- out_normalizeCovariate$normalized_data
   tp <- read_time.point(nuisance.model, normalized_data, ci$out_defineExposureDesign$x_a, outcome.type, code.censoring, should.terminate.time.point, time.point)
+  index.vector <- calculateIndexForParameter(NA, ci$x_l, ci$x_a, length(tp))
 
   estimand <- list(
     effect.measure1=ce$effect.measure1,
@@ -187,7 +189,7 @@ cif_reg <- function(
     code.censoring=code.censoring,
     code.exposure.ref=code.exposure.ref,
     exposure.levels=ci$out_defineExposureDesign$exposure.levels,
-    index.vector=ci$index.vector
+    index.vector=index.vector
   )
 
   optim.method <- list(

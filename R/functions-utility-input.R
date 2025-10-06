@@ -44,6 +44,17 @@ Surv <- function(time, event) {
   return(ss)
 }
 
+#' Create a survival or competing risks response
+#'
+#' A lightweight response constructor used in \code{cif_curve()} and \code{cif_reg()}
+#' to pass survival and competing risks data via a model formula.
+#'
+#' @param time Numeric vector of follow-up times (non-negative).
+#' @param event Integer or factor vector of event codes
+#'   (e.g., 0 = censored, 1 = event of interest, 2 = competing event).
+#'
+#' @return An object of class \code{"Event"} with fields \code{time}, \code{event}
+#' @export
 Event <- function(time, event) {
   if (missing(time))
     stop("Must have a time argument")
@@ -292,8 +303,6 @@ checkInput <- function(data, formula, exposure, code.event1, code.event2, code.c
   out_defineExposureDesign <- defineExposureDesign(data, exposure, code.exposure.ref)
   x_a <- out_defineExposureDesign$x_a
   x_l <- model.matrix(out_terms, mf)
-  index.vector <- rep(NA, 7)
-  index.vector <- calculateIndexForParameter(NA,x_l,x_a)
 
   if (!is.numeric(conf.level) || length(conf.level) != 1 || conf.level <= 0 || conf.level >= 1)
     stop("conf.level must be a single number between 0 and 1")
@@ -322,17 +331,7 @@ checkInput <- function(data, formula, exposure, code.event1, code.event2, code.c
 
   outer_choices <- c("nleqslv","Newton","Broyden")
   nleqslv.method <- match.arg(nleqslv.method, choices = outer_choices)
-  return(list(should.normalize.covariate = should.normalize.covariate.corrected, report.sandwich.conf = report.sandwich.conf.corrected, report.boot.conf = report.boot.conf.corrected, out_defineExposureDesign=out_defineExposureDesign, index.vector=index.vector))
-}
-
-
-checkDependentPackages <- function() {
-  if (requireNamespace("ggsurvfit", quietly = TRUE) & requireNamespace("Rcpp", quietly = TRUE)) {
-    suppressWarnings(library(ggsurvfit))
-    suppressWarnings(library(Rcpp))
-  } else {
-    stop("Required packages 'ggsurvfit' and/or 'Rcpp' are not installed.")
-  }
+  return(list(should.normalize.covariate = should.normalize.covariate.corrected, report.sandwich.conf = report.sandwich.conf.corrected, report.boot.conf = report.boot.conf.corrected, out_defineExposureDesign=out_defineExposureDesign, x_a=x_a, x_l=x_l))
 }
 
 check_effect.measure <- function(effect.measure1, effect.measure2) {
@@ -399,4 +398,29 @@ check_error <- function(error, outcome.type) {
     }
   }
   return(error)
+}
+
+check_label.strata <- function(out_readSurv, label.strata) {
+  strata_levels <- levels(as.factor(out_readSurv$strata))
+  n_strata <- length(strata_levels)
+  if (!is.null(label.strata)) {
+    if (!is.character(label.strata)) {
+      stop("`label.strata` must be a character vector.", call. = FALSE)
+    }
+    if (length(label.strata) != n_strata) {
+      stop(sprintf("`label.strata` must have length %d (number of strata), but got %d.", n_strata, length(label.strata)), call. = FALSE)
+    }
+  }
+}
+
+untangle.specials <- function(tt, special, order = 1) {
+  spc <- attr(tt, "specials")[[special]]
+  if (length(spc) == 0)
+    return(list(vars = character(0), terms = numeric(0)))
+  facs <- attr(tt, "factors")
+  fname <- dimnames(facs)
+  ff <- apply(facs[spc, , drop = FALSE], 2, sum)
+  list(vars = (fname[[1]])[spc], tvar = spc - attr(tt, "response"),
+       terms = seq(ff)[ff & match(attr(tt, "order"), order,
+                                  nomatch = 0)])
 }

@@ -1,7 +1,7 @@
 test_that("cif_curve() yields the same outputs as survfit() with log-log transformation", {
-  library(survival)
+  testthat::skip_if_not_installed("survival")
   df_test <- createTestData(200, 2, first_zero=TRUE, last_zero=TRUE, subset_present=FALSE, logical_strata=FALSE, na_strata=FALSE)
-  e <- survfit(Surv(t, d)~strata, df_test, weight=w, conf.type = "log-log")
+  e <- survival::survfit(Surv(t, d)~strata, df_test, weight=w, conf.type = "log-log")
   t <- cif_curve(Surv(t, d)~strata, df_test, weight="w", conf.type = "log-log", report.ggsurvfit = FALSE, report.survfit.std.err = TRUE)
   e$std.err <- sapply(e$std.err, function(x) ifelse(is.nan(x), NA, x))
   e$lower <- sapply(e$lower, function(x) ifelse(is.nan(x), NA, x))
@@ -33,9 +33,9 @@ test_that("cif_curve() yields the same outputs as survfit() with log-log transfo
 })
 
 test_that("cif_curve() yields the same outputs as survfit() with log transformation", {
-  library(survival)
+  testthat::skip_if_not_installed("survival")
   df_test <- createTestData(200, 2, first_zero=TRUE, last_zero=TRUE, subset_present=FALSE, logical_strata=FALSE, na_strata=FALSE)
-  e <- survfit(Surv(t, d)~strata, df_test, weight=w, conf.type = "log")
+  e <- survival::survfit(Surv(t, d)~strata, df_test, weight=w, conf.type = "log")
   t <- cif_curve(Surv(t, d)~strata, df_test, weight="w", conf.type = "log", report.ggsurvfit = FALSE, report.survfit.std.err = TRUE)
   e$std.err <- sapply(e$std.err, function(x) ifelse(is.nan(x), NA, x))
   e$lower <- sapply(e$lower, function(x) ifelse(is.nan(x), NA, x))
@@ -67,9 +67,9 @@ test_that("cif_curve() yields the same outputs as survfit() with log transformat
 })
 
 test_that("cif_curve() yields the same outputs as survfit() with arcsine transformation", {
-  library(survival)
+  testthat::skip_if_not_installed("survival")
   df_test <- createTestData(200, 2, first_zero=TRUE, last_zero=TRUE, subset_present=FALSE, logical_strata=FALSE, na_strata=FALSE)
-  e <- survfit(Surv(t, d)~strata, df_test, weight=w, conf.type = "a")
+  e <- survival::survfit(Surv(t, d)~strata, df_test, weight=w, conf.type = "a")
   t <- cif_curve(Surv(t, d)~strata, df_test, weight="w", conf.type = "a", report.ggsurvfit = FALSE, report.survfit.std.err = TRUE)
   e$std.err <- sapply(e$std.err, function(x) ifelse(is.nan(x), NA, x))
   e$lower <- sapply(e$lower, function(x) ifelse(is.nan(x), NA, x))
@@ -101,9 +101,9 @@ test_that("cif_curve() yields the same outputs as survfit() with arcsine transfo
 })
 
 test_that("survival.curve() yields the same outputs as survfit()", {
-  library(survival)
+  testthat::skip_if_not_installed("survival")
   df_test <- createTestData(200, 2, first_zero=TRUE, last_zero=TRUE, subset_present=FALSE, logical_strata=FALSE, na_strata=FALSE)
-  e <- survfit(Surv(t, d)~strata, df_test, weight=w, conf.type = "plain")
+  e <- survival::survfit(Surv(t, d)~strata, df_test, weight=w, conf.type = "plain")
   t <- cif_curve(Surv(t, d)~strata, df_test, weight="w", conf.type = "plain", report.ggsurvfit = FALSE, report.survfit.std.err = TRUE)
   e$std.err <- sapply(e$std.err, function(x) ifelse(is.nan(x), NA, x))
   e$lower <- sapply(e$lower, function(x) ifelse(is.nan(x), NA, x))

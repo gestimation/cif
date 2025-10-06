@@ -38,22 +38,29 @@ test_that("cif_reg() produced expected coefficients and variance covariance matr
   expect_equal(tested, expected)
 })
 
-test_that("cif_reg() produced expected common effects at 1:5 in prostate", {
-  library(dplyr)
-  library(janitor)
-  data(prostate)
-  prostate <- prostate %>% mutate(epsilon=ifelse(status=="alive",0,
-                                                 ifelse(status=="dead - prostatic ca",1,
-                                                        ifelse(status=="dead - other ca",1,
-                                                               ifelse(status=="dead - heart or vascular",2,
-                                                                      ifelse(status=="dead - cerebrovascular",2,2)
-                                                               )))))
-  prostate$epsilon <- as.numeric(prostate$epsilon)
-  prostate$a <- as.numeric((prostate$rx=="placebo"))
-  prostate$t <- prostate$dtime/12
-  output <- cif_reg(nuisance.model = Event(t,epsilon) ~ +1, exposure = 'a', strata='stage', data = prostate,
-                    effect.measure1='RR', effect.measure2='RR', time.point=1:5, outcome.type='POLY-PROPORTIONAL', report.boot.conf=FALSE)
+test_that("cif_reg() produced expected common effects at 1:8", {
+  data(diabetes.complications)
+  output <- cif_reg(nuisance.model = Surv(t,epsilon)~+1, exposure = 'fruitq1', strata = 'strata', data = diabetes.complications, effect.measure1='RR', effect.measure2='RR', time.point=1:8, outcome.type='PP', report.boot.conf=FALSE)
   tested <- round(output$coefficient,digit=3)
-  expected <- c(-2.289, -1.753, -1.461, -1.363, -1.254, -0.034, -2.056, -1.609, -1.245, -1.067, -0.971, 0.058)
+  expected <- c(-3.634, -2.360, -1.944, -1.727, -1.575, -1.473, -1.403, -1.343, 0.256, -4.632, -3.940, -3.634, -3.360, -2.996, -2.795, -2.609, -2.536, -0.050)
   expect_equal(tested, expected)
 })
+
+#test_that("cif_reg() produced expected common effects at 1:5 in prostate", {
+#  testthat::skip_if_not_installed("dplyr")
+#  data(prostate)
+#  prostate <- dplyr::mutate(prostate, epsilon = ifelse(status=="alive",0,
+#                                                       ifelse(status=="dead - prostatic ca",1,
+#                                                              ifelse(status=="dead - other ca",1,
+#                                                                     ifelse(status=="dead - heart or vascular",2,
+#                                                                            ifelse(status=="dead - cerebrovascular",2,2)
+#                                                                     )))))
+#  prostate$epsilon <- as.numeric(prostate$epsilon)
+#  prostate$a <- as.numeric((prostate$rx=="placebo"))
+#  prostate$t <- prostate$dtime/12
+#  output <- cif_reg(nuisance.model = Event(t,epsilon) ~ +1, exposure = 'a', strata='stage', data = prostate,
+#                    effect.measure1='RR', effect.measure2='RR', time.point=1:5, outcome.type='POLY-PROPORTIONAL', report.boot.conf=FALSE)
+#  tested <- round(output$coefficient,digit=3)
+#  expected <- c(-2.289, -1.753, -1.461, -1.363, -1.254, -0.034, -2.056, -1.609, -1.245, -1.067, -0.971, 0.058)
+#  expect_equal(tested, expected)
+#})

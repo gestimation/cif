@@ -2,7 +2,7 @@
 % Please edit documentation in R/cif_curve.R
 \name{cif_curve}
 \alias{cif_curve}
-\title{Survival curves and cumulative incidence curves}
+\title{Visualize time-to-event outcomes and intercurrent events}
 \usage{
 cif_curve(
   formula,
@@ -128,27 +128,12 @@ For CIF display, set \code{ggsurvfit.type = "risk"}.
 }
 \examples{
 library(cif)
-library(gtsummary)
-library(dplyr)
-library(labelled)
-data(prostate)
-prostate <- prostate \%>\% mutate(d=ifelse(status=="alive",0,1))
-prostate <- prostate \%>\% mutate(a=ifelse(rx=="placebo","Placebo","Experimental"))
-prostate$t <- prostate$dtime/12
-attr(prostate$a, "label") <- "Treatment"
-survfit_by_group <- cif_curve(Event(t, d)~a, data=prostate, label.x = "Years from randomization")
-quantile(survfit_by_group)
-print(survfit_by_group, rmean=6)
-
-Surv <- cif::Surv
-survfit_overall <- cif_curve(Surv(t, d)~1, data=prostate, report.ggsurvfit=FALSE)
-
-survfit_list <- list(survfit_overall, survfit_by_group)
-table_from_survfit <- tbl_survfit(survfit_list, times = c(2, 4, 6), label_header = "**{time} years**") |>
-  modify_spanning_header(all_stat_cols() ~ "**Overall survival**")
-table_from_survfit
+data(diabetes.complications)
+survfit_by_group <- cif_curve(Event(t,epsilon) ~ fruitq, data = diabetes.complications,
+                    outcome.type='COMPETING-RISK', error='delta', ggsurvfit.type = 'risk',
+                    label.y = 'CIF of diabetic retinopathy', label.x = 'Years from registration')
 
 }
 \seealso{
-\code{\link{cir_reg}} for regression of cumulative incidence; \pkg{ggsurvfit} for plotting helpers.
+\code{\link{cif_reg}} for log-odds product models of CIFs; \pkg{ggsurvfit} for plotting helpers.
 }

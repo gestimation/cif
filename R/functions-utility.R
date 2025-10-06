@@ -7,7 +7,7 @@ clampLogP <- function(x, eps = 1e-5) {
   x
 }
 
-calculateIndexForParameter <- function(i_parameter,x_l,x_a,length.time.point=1) {
+calculateIndexForParameter <- function(i_parameter,x_l,x_a,length.time.point) {
   i_parameter[1] <- ncol(x_l)
   i_parameter[2] <- i_parameter[1] + 1
   i_parameter[3] <- i_parameter[1] + ncol(x_a)

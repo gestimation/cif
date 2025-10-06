@@ -21,7 +21,7 @@ getInitialValues <- function(formula, data, outcome.type, exposure, estimand,
   }
 
   if (!is.null(attributes(Terms)$specials$offset)) {
-    ts <- survival::untangle.specials(Terms, "offset")
+    ts <- untangle.specials(Terms, "offset")
     if (length(ts$vars) > 0) {
       Terms2 <- Terms[-ts$terms]
       offset <- mf[[ts$vars]]

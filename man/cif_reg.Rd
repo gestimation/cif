@@ -2,8 +2,8 @@
 % Please edit documentation in R/cif_reg.R
 \name{cif_reg}
 \alias{cif_reg}
-\title{Regression models of cumulative incidence functions using polytomous
-log-odds products for survival and competing risks data}
+\title{Fit regression models of cumulative incidence functions based on polytomous
+log-odds products}
 \usage{
 cif_reg(
   nuisance.model,
@@ -194,7 +194,7 @@ survival and binomial endpoints.
 }
 \examples{
 data(diabetes.complications)
-output <- polyreg(
+output <- cif_reg(
   nuisance.model = Event(t, epsilon) ~ +1,
   exposure = "fruitq1",
   data = diabetes.complications,
@@ -203,6 +203,7 @@ output <- polyreg(
   time.point = 8,
   outcome.type = "COMPETING-RISK"
 )
-library(modelsummary)
-msummary(output$summary, statistic = c("conf.int"), exponentiate = TRUE)
+if (requireNamespace("modelsummary", quietly = TRUE)) {
+modelsummary::msummary(output$summary, statistic = c("conf.int", "p.value"), exponentiate = TRUE)
+}
 }

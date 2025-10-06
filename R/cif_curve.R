@@ -1,4 +1,4 @@
-#' @title Survival curves and cumulative incidence curves
+#' @title Visualize time-to-event outcomes and intercurrent events
 #' @description
 #' Estimate and plot survival curves using the Kaplan–Meier estimator or
 #' cumulative incidence curves under competing risks using the Aalen–Johansen estimator.
@@ -36,9 +36,9 @@
 #' @param report.survfit.std.err If \code{TRUE}, report SE on the log-survival scale (survfit's convention). Otherwise SE is on the probability scale.
 #' @param report.ggsurvfit If \code{TRUE} (default), draw a \pkg{ggsurvfit} plot.
 #' @param ggsurvfit.type \code{NULL} (survival) or \code{"risk"} (display \code{1 - survival} i.e. CIF).
-#' @param addConfidenceInterval Logical; add \code{add_confidence_interval()} to plot (default \code{TRUE}).
-#' @param addRiskTable Logical; add \code{add_risktable(risktable_stats="n.risk")} to plot (default \code{TRUE}).
-#' @param addCensorMark Logical; add \code{add_censor_mark()} to plot (default \code{TRUE}).
+#' @param addConfidenceInterval Logical add \code{add_confidence_interval()} to plot (default \code{TRUE}).
+#' @param addRiskTable Logical add \code{add_risktable(risktable_stats="n.risk")} to plot (default \code{TRUE}).
+#' @param addCensorMark Logical add \code{add_censor_mark()} to plot (default \code{TRUE}).
 #' @param shape.censor.mark Integer point shape for censor marks (default \code{3}).
 #' @param size.censor.mark Numeric point size for censor marks (default \code{2}).
 #' @param addIntercurrentEventMark Logical; overlay user-specified time marks per strata (default \code{TRUE}).
@@ -56,31 +56,17 @@
 #' For \code{outcome.type="COMPETING-RISK"}, \code{$surv} equals \code{1 - CIF} for \code{code.event1}.
 #' Standard error and CIs are provided per \code{conf.type}. Note that some methods for \code{survfit} (e.g., \code{residuals.survfit}) may not be supported.
 #'
-#' @seealso \code{\link{cir_reg}} for regression of cumulative incidence; \pkg{ggsurvfit} for plotting helpers.
+#' @seealso \code{\link{cif_reg}} for log-odds product models of CIFs; \pkg{ggsurvfit} for plotting helpers.
 #'
 #' @examples
 #' library(cif)
-#' library(gtsummary)
-#' library(dplyr)
-#' library(labelled)
-#' data(prostate)
-#' prostate <- prostate %>% mutate(d=ifelse(status=="alive",0,1))
-#' prostate <- prostate %>% mutate(a=ifelse(rx=="placebo","Placebo","Experimental"))
-#' prostate$t <- prostate$dtime/12
-#' attr(prostate$a, "label") <- "Treatment"
-#' survfit_by_group <- cif_curve(Event(t, d)~a, data=prostate, label.x = "Years from randomization")
-#' quantile(survfit_by_group)
-#' print(survfit_by_group, rmean=6)
-#'
-#' Surv <- cif::Surv
-#' survfit_overall <- cif_curve(Surv(t, d)~1, data=prostate, report.ggsurvfit=FALSE)
-#'
-#' survfit_list <- list(survfit_overall, survfit_by_group)
-#' table_from_survfit <- tbl_survfit(survfit_list, times = c(2, 4, 6), label_header = "**{time} years**") |>
-#'   modify_spanning_header(all_stat_cols() ~ "**Overall survival**")
-#' table_from_survfit
+#' data(diabetes.complications)
+#' survfit_by_group <- cif_curve(Event(t,epsilon) ~ fruitq, data = diabetes.complications,
+#'                     outcome.type='COMPETING-RISK', error='delta', ggsurvfit.type = 'risk',
+#'                     label.y = 'CIF of diabetic retinopathy', label.x = 'Years from registration')
 #'
 #' @importFrom ggsurvfit ggsurvfit add_confidence_interval add_risktable add_censor_mark
+#' @importFrom ggplot2 theme_classic theme element_text labs lims geom_point aes
 #' @importFrom Rcpp sourceCpp
 #' @useDynLib cif, .registration = TRUE
 #' @export
@@ -120,6 +106,7 @@ cif_curve <- function(formula,
   outcome.type <- check_outcome.type(outcome.type)
   out_readSurv <- readSurv(formula, data, weights, code.event1, code.event2, code.censoring, subset.condition, na.action)
   error <- check_error(error, outcome.type)
+  check_label.strata(out_readSurv, label.strata)
 
   if (outcome.type == "SURVIVAL") {
     out_km <- calculateKM(out_readSurv$t, out_readSurv$d, out_readSurv$w, as.integer(out_readSurv$strata), error)
@@ -385,54 +372,6 @@ call_ggsurvfit <- function(
     }
   }
   return(p)
-}
-
-
-#' Internal: validate shapes, ranges, and emit warnings for the plot
-check_ggsurvfit <- function(
-    survfit_object,
-    lims.x, lims.y,
-    ggsurvfit.type = NULL,
-    addConfidenceInterval = TRUE,
-    addCensorMark = TRUE,
-    addIntercurrentEventMark = TRUE,
-    shape.censor.mark = 3,
-    shape.intercurrent.event.mark = 16
-){
-  if (isTRUE(addCensorMark) && isTRUE(addIntercurrentEventMark) &&
-      !is.null(shape.censor.mark) && !is.null(shape.intercurrent.event.mark) &&
-      identical(shape.censor.mark, shape.intercurrent.event.mark)) {
-    warning("shape.censor.mark and shape.intercurrent.event.mark specify an idencical type of symbol")
-  }
-  if (!is.null(lims.x) && length(lims.x) == 2 && is.numeric(lims.x)) {
-    tmax <- suppressWarnings(max(survfit_object$time, na.rm = TRUE))
-    if (is.finite(tmax) && (tmax < lims.x[1] || tmax > lims.x[2])) {
-      warning(sprintf("Max of survfit_object$time (%.4g) is out of lims.x=[%.4g, %.4g]",
-                      tmax, lims.x[1], lims.x[2]))
-    }
-  }
-  if (!is.null(lims.y) && length(lims.y) == 2 && is.numeric(lims.y)) {
-    surv <- survfit_object$surv
-    upper <- survfit_object$upper
-    lower <- survfit_object$lower
-    if (identical(ggsurvfit.type, "risk")) {
-      surv  <- 1 - surv
-      if (!is.null(upper)) upper <- 1 - upper
-      if (!is.null(lower)) lower <- 1 - lower
-    }
-
-    if (any(surv < lims.y[1] | surv > lims.y[2], na.rm = TRUE)) {
-      warning(sprintf("Some point estimates are out of lims.y=[%.4g, %.4g]", lims.y[1], lims.y[2]))
-    }
-    if (isTRUE(addConfidenceInterval)) {
-      if (!is.null(upper) && any(upper < lims.y[1] | upper > lims.y[2], na.rm = TRUE)) {
-        warning(sprintf("Some upper confidence limits are lims.y=[%.4g, %.4g]", lims.y[1], lims.y[2]))
-      }
-      if (!is.null(lower) && any(lower < lims.y[1] | lower > lims.y[2], na.rm = TRUE)) {
-        warning(sprintf("Some lower confidence limits are lims.y=[%.4g, %.4g]", lims.y[1], lims.y[2]))
-      }
-    }
-  }
 }
 
 calculateAJ <- function(data) {
