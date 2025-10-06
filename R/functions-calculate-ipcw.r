@@ -32,7 +32,7 @@ calculateIPCW <- function(formula, data, code.censoring, strata_name, specific.t
   ip.weight <- tmp3 + tmp4
   if (any(is.na(ip.weight)))
     stop("Inverse probability weights contain NA values")
-  return(ip.weight)
+  return(as.matrix(ip.weight))
 }
 
 calculateIPCWMatrix <- function(formula, data, code.censoring, strata_name, estimand, out_normalizeCovariate) {

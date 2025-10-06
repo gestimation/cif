@@ -137,49 +137,49 @@ glance_df <- function(
 
 
 getCoefTerm <- function(report.nuisance.parameter, report.sandwich.conf, report.boot.conf, nuisance.model, outcome.type, exposure, estimand, alpha_beta_estimated, cov_estimated, out_bootstrap, conf.level, out_getResults) {
-  index.vector <- estimand$index.vector
+  iv <- estimand$index.vector
   code.exposure.ref <- as.character(estimand$code.exposure.ref)
 
   if (outcome.type == "COMPETING-RISK") {
     if (report.nuisance.parameter == TRUE) {
-      index1 <- seq_len(index.vector[3])
-      index2 <- seq.int(index.vector[4], index.vector[7])
+      index1 <- seq_len(iv[3])
+      index2 <- seq.int(iv[4], iv[7])
       nuisance_terms <- c("Intercept", attr(terms(nuisance.model), "term.labels"))
     } else {
-      index1 <- seq.int(index.vector[2], index.vector[3])
-      index2 <- seq.int(index.vector[6], index.vector[7])
+      index1 <- seq.int(iv[2], iv[3])
+      index2 <- seq.int(iv[6], iv[7])
       nuisance_terms <- character(0)
     }
   }
   if (outcome.type == "SURVIVAL" || outcome.type == "BINOMIAL") {
     if (report.nuisance.parameter == TRUE) {
-      index1 <- seq_len(index.vector[3])
+      index1 <- seq_len(iv[3])
       index2 <- NULL
       nuisance_terms <- c("Intercept", attr(terms(nuisance.model), "term.labels"))
     } else {
-      index1 <- seq.int(index.vector[2], index.vector[3])
+      index1 <- seq.int(iv[2], iv[3])
       index2 <- NULL
       nuisance_terms <- character(0)
     }
   }
   if (outcome.type == "POLY-PROPORTIONAL") {
     if (report.nuisance.parameter == TRUE) {
-      index1 <- seq_len(index.vector[8]/2)
-      index2 <- seq.int(index.vector[8]/2+1, index.vector[8])
+      index1 <- seq_len(iv[8]/2)
+      index2 <- seq.int(iv[8]/2+1, iv[8])
       nuisance_terms <- c("Intercept", attr(terms(nuisance.model), "term.labels"))
     } else {
-      index1 <- seq.int(index.vector[8]/2-estimand$exposure.levels+2, index.vector[8]/2)
-      index2 <- seq.int(index.vector[8]-estimand$exposure.levels+2, index.vector[8])
+      index1 <- seq.int(iv[8]/2-estimand$exposure.levels+2, iv[8]/2)
+      index2 <- seq.int(iv[8]-estimand$exposure.levels+2, iv[8])
       nuisance_terms <- character(0)
     }
   }
   if (outcome.type == "PROPORTIONAL") {
     if (report.nuisance.parameter == TRUE) {
-      index1 <- seq_len(index.vector[8]/2)
+      index1 <- seq_len(iv[8]/2)
       index2 <- NULL
       nuisance_terms <- c("Intercept", attr(terms(nuisance.model), "term.labels"))
     } else {
-      index1 <- seq.int(index.vector[8]/2-estimand$exposure.levels+2, index.vector[8]/2)
+      index1 <- seq.int(iv[8]/2-estimand$exposure.levels+2, iv[8]/2)
       index2 <- NULL
       nuisance_terms <- character(0)
     }
@@ -197,20 +197,20 @@ getCoefTerm <- function(report.nuisance.parameter, report.sandwich.conf, report.
 }
 
 getCoefTerm_ <- function(report.nuisance.parameter, report.sandwich.conf, report.boot.conf, nuisance.model, outcome.type, exposure, estimand, alpha_beta_estimated, cov_estimated, out_bootstrap, conf.level, out_getResults) {
-  index.vector <- estimand$index.vector
+  iv <- estimand$index.vector
   code.exposure.ref <- as.character(estimand$code.exposure.ref)
   if (report.nuisance.parameter == TRUE) {
-    coef1 <- getCoef(seq_len(index.vector[3]), alpha_beta_estimated, cov_estimated, report.sandwich.conf, report.boot.conf, out_bootstrap, conf.level)
+    coef1 <- getCoef(seq_len(iv[3]), alpha_beta_estimated, cov_estimated, report.sandwich.conf, report.boot.conf, out_bootstrap, conf.level)
     if (outcome.type == "COMPETING-RISK" || outcome.type == "POLY-PROPORTIONAL") {
-      coef2 <- getCoef(seq.int(index.vector[4], index.vector[7]), alpha_beta_estimated, cov_estimated, report.sandwich.conf, report.boot.conf, out_bootstrap, conf.level)
+      coef2 <- getCoef(seq.int(iv[4], iv[7]), alpha_beta_estimated, cov_estimated, report.sandwich.conf, report.boot.conf, out_bootstrap, conf.level)
     } else {
       coef2 <- NULL
     }
     nuisance_terms <- c("Intercept", attr(terms(nuisance.model), "term.labels"))
   } else {
-    coef1 <- getCoef(seq.int(index.vector[2], index.vector[3]), alpha_beta_estimated, cov_estimated, report.sandwich.conf, report.boot.conf, out_bootstrap, conf.level)
+    coef1 <- getCoef(seq.int(iv[2], iv[3]), alpha_beta_estimated, cov_estimated, report.sandwich.conf, report.boot.conf, out_bootstrap, conf.level)
     if (outcome.type == "COMPETING-RISK" || outcome.type == "POLY-PROPORTIONAL") {
-    coef2 <- getCoef(seq.int(index.vector[6], index.vector[7]), alpha_beta_estimated, cov_estimated, report.sandwich.conf, report.boot.conf, out_bootstrap, conf.level)
+    coef2 <- getCoef(seq.int(iv[6], iv[7]), alpha_beta_estimated, cov_estimated, report.sandwich.conf, report.boot.conf, out_bootstrap, conf.level)
     } else {
       coef2 <- NULL
     }

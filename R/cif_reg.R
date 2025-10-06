@@ -240,9 +240,9 @@ cif_reg <- function(
   # 3. Calculating IPCW (function: calculateIPCW, calculateIPCWMatrix)
   #######################################################################################################
   if (outcome.type == "COMPETING-RISK" | outcome.type == "SURVIVAL") {
-    ip.weight <- calculateIPCW(nuisance.model, normalized_data, code.censoring, strata, estimand$time.point)
+    ip.weight.matrix <- calculateIPCW(nuisance.model, normalized_data, code.censoring, strata, estimand$time.point)
   } else if (outcome.type == "BINOMIAL") {
-    ip.weight <- rep(1,nrow(normalized_data))
+    ip.weight.matrix <- matrix(1,nrow(normalized_data),1)
   } else if (outcome.type == "PROPORTIONAL" | outcome.type == "POLY-PROPORTIONAL") {
     ip.weight.matrix <- calculateIPCWMatrix(nuisance.model, normalized_data, code.censoring, strata, estimand, out_normalizeCovariate)
   }
@@ -259,38 +259,15 @@ cif_reg <- function(
       }
       estimating_equation_i <- function(p) call_and_capture(
         estimating_equation_ipcw,
-        formula = nuisance.model, data = normalized_data, exposure = exposure,
-        ip.weight = ip.weight, alpha_beta = p, estimand = estimand,
+        formula = nuisance.model, data = normalized_data, exposure = exposure, outcome.type=outcome.type,
+        ip.weight.matrix = ip.weight.matrix, alpha_beta = p, estimand = estimand,
         optim.method = optim.method, prob.bound = prob.bound,
         initial.CIFs = initial.CIFs
       )
-      estimating_equation_s <- function(p) call_and_capture(
-      estimating_equation_survival,
-      formula = nuisance.model, data = normalized_data, exposure = exposure,
-      ip.weight = ip.weight, alpha_beta = p, estimand = estimand,
-      prob.bound = prob.bound, initial.CIFs = initial.CIFs
-    )
-      estimating_equation_p <- function(p) call_and_capture(
-      estimating_equation_proportional,
-      formula = nuisance.model, data = normalized_data, exposure = exposure,
-      ip.weight.matrix = ip.weight.matrix, alpha_beta = p, estimand = estimand,
-      optim.method = optim.method, prob.bound = prob.bound,
-      initial.CIFs = initial.CIFs
-    )
-      estimating_equation_pp <- function(p) call_and_capture(
-      estimating_equation_pproportional,
-      formula = nuisance.model, data = normalized_data, exposure = exposure,
-      ip.weight.matrix = ip.weight.matrix, alpha_beta = p, estimand = estimand,
-      optim.method = optim.method, prob.bound = prob.bound,
-      initial.CIFs = initial.CIFs
-    )
     setInitialCIFs <- function(new.CIFs) initial.CIFs <<- new.CIFs
     getResults     <- function() out_ipcw
       list(
       estimating_equation_i = estimating_equation_i,
-      estimating_equation_s = estimating_equation_s,
-      estimating_equation_p = estimating_equation_p,
-      estimating_equation_pp = estimating_equation_pp,
       setInitialCIFs = setInitialCIFs,
       getResults = getResults
     )
@@ -303,9 +280,9 @@ cif_reg <- function(
     param_diff <- abs(new_params - current_params)
     max.absolute.difference <- max(param_diff)
     relative.difference <- assessRelativeDifference(new_params, current_params)
-    obj_value <- get_obj_value(new_params)
-    converged <- (relative.difference <= optim.parameter1) || (obj_value <= optim.parameter2) || is_stalled(c(current_obj_value, obj_value))
+    obj_value <- drop(crossprod(obj$estimating_equation_i(new_params)))
 
+    converged <- (relative.difference <= optim.parameter1) || (obj_value <= optim.parameter2) || is_stalled(c(current_obj_value, obj_value))
     criteria1 <- (relative.difference <= optim.parameter1)
     criteria2 <- (obj_value <= optim.parameter2)
     criteria3 <- is_stalled(c(current_obj_value, obj_value))
@@ -328,20 +305,6 @@ cif_reg <- function(
     (diff(range(recent)) / max(1e-12, mean(recent))) <= eps
   }
 
-  choose_estimating_equation <- function(outcome.type, obj) {
-    if (outcome.type == "COMPETING-RISK") {
-      obj$estimating_equation_i
-    } else if (outcome.type == "SURVIVAL" | outcome.type == "BINOMIAL") {
-      obj$estimating_equation_s
-    } else if (outcome.type == "PROPORTIONAL") {
-      obj$estimating_equation_p
-    } else if (outcome.type == "POLY-PROPORTIONAL") {
-      obj$estimating_equation_pp
-    } else {
-      stop("Unknown outcome.type: ", outcome.type)
-    }
-  }
-
   choose_nleqslv_method <- function(nleqslv.method) {
     if (nleqslv.method == "nleqslv" || nleqslv.method == "Broyden") {
       "Broyden"
@@ -352,17 +315,7 @@ cif_reg <- function(
     }
   }
 
-  get_obj_value <- switch(outcome.type,
-                          "COMPETING-RISK"   = function(p) drop(crossprod(obj$estimating_equation_i(p))),
-                          "SURVIVAL"         = function(p) drop(crossprod(obj$estimating_equation_s(p))),
-                          "BINOMIAL"         = function(p) drop(crossprod(obj$estimating_equation_s(p))),
-                          "PROPORTIONAL"     = function(p) drop(crossprod(obj$estimating_equation_p(p))),
-                          "POLY-PROPORTIONAL"= function(p) drop(crossprod(obj$estimating_equation_pp(p))),
-                          stop("Unknown outcome.type: ", outcome.type)
-  )
-
   obj <- makeObjectiveFunction()
-  estimating_fun <- choose_estimating_equation(outcome.type, obj)
   nleqslv_method  <- choose_nleqslv_method(nleqslv.method)
   iteration <- 0L
   max.absolute.difference <- Inf
@@ -378,13 +331,13 @@ cif_reg <- function(
 
     out_nleqslv <- nleqslv(
       prev_params,
-      estimating_fun,
+      obj$estimating_equation_i,
       method  = nleqslv_method,
       control = list(maxit = optim.parameter5, allowSingular = FALSE)
     )
     new_params <- out_nleqslv$x
+    current_obj_value <- drop(crossprod(obj$estimating_equation_i(new_params)))
 
-    current_obj_value <- get_obj_value(new_params)
     obj$setInitialCIFs(obj$getResults()$potential.CIFs)
     ac <- assessConvergence(new_params, prev_params, current_obj_value, optim.parameter1, optim.parameter2, optim.parameter3)
 

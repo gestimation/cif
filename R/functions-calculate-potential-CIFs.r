@@ -1,12 +1,12 @@
 calculatePotentialCIFs <- function(alpha_beta_tmp, x_a, x_l, offset, epsilon, estimand, optim.method, prob.bound, initial.CIFs = NULL) {
   K <- estimand$exposure.levels
   n  <- length(epsilon)
-  index.vector <- estimand$index.vector
+  iv <- estimand$index.vector
 
-  alpha_1    <- alpha_beta_tmp[seq_len(index.vector[1])]
-  beta_tmp_1 <- alpha_beta_tmp[seq.int(index.vector[2], index.vector[3])]
-  alpha_2    <- alpha_beta_tmp[seq.int(index.vector[4], index.vector[5])]
-  beta_tmp_2 <- alpha_beta_tmp[seq.int(index.vector[6], index.vector[7])]
+  alpha_1    <- alpha_beta_tmp[seq_len(iv[1])]
+  beta_tmp_1 <- alpha_beta_tmp[seq.int(iv[2], iv[3])]
+  alpha_2    <- alpha_beta_tmp[seq.int(iv[4], iv[5])]
+  beta_tmp_2 <- alpha_beta_tmp[seq.int(iv[6], iv[7])]
   alpha_tmp_1 <- as.numeric(x_l %*% matrix(alpha_1, ncol = 1) + offset)
   alpha_tmp_2 <- as.numeric(x_l %*% matrix(alpha_2, ncol = 1) + offset)
 
@@ -49,12 +49,12 @@ calculatePotentialCIFs <- function(alpha_beta_tmp, x_a, x_l, offset, epsilon, es
 }
 
 calculatePotentialRisk <- function(alpha_beta, x_a, x_l, offset, estimand) {
-  index.vector <- estimand$index.vector
+  iv <- estimand$index.vector
   one <- rep(1, nrow(x_l))
   alpha_beta_ <- as.matrix(as.vector(alpha_beta))
   if (ncol(alpha_beta_) == 1L) alpha_beta_ <- t(alpha_beta_)
-  phi <- x_l %*% alpha_beta_[, seq_len(index.vector[1])] + offset
-  theta <- one * alpha_beta_[, index.vector[2]]
+  phi <- x_l %*% alpha_beta_[, seq_len(iv[1])] + offset
+  theta <- one * alpha_beta_[, iv[2]]
 
   if (estimand$effect.measure1 == "RR") {
     expphi <- exp(phi)
