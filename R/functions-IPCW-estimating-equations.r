@@ -136,8 +136,6 @@ calculateCov <- function(objget_results, estimand, prob.bound)
   wy_1 <- w11 * (y_1 - ey_1) + w12 * (y_2 - ey_2)
   wy_2 <- w12 * (y_1 - ey_1) + w22 * (y_2 - ey_2)
   x_la <- cbind(x_l, x_a)
-  #AB1 <- score[1:n, 1:index.vector[2]]
-  #AB2 <- score[(n + 1):(2 * n), index.vector[3]:index.vector[5]]
   AB1 <- score[1:n, 1:index.vector[3]]
   AB2 <- score[(n + 1):(2 * n), index.vector[4]:index.vector[7]]
   for (i_para in 1:index.vector[2]) {
@@ -477,40 +475,27 @@ estimating_equation_proportional <- function(
   i_time <- 0
   alpha_beta_i <- rep(NA, index.vector[7])
   for (specific.time in time.point) {
-    i_time <- i_time + 1                    #時間のインデックス
-    i_para <- index.vector[1]*(i_time-1)+1  #パラメータのうち時間依存性切片項のインデックス
-    alpha_beta_i[seq_len(index.vector[1])]                  <- alpha_beta[seq.int(i_para, i_para+index.vector[1]-1)]  #時間依存性切片項から共変量回帰係数までのインデックス
-    alpha_beta_i[seq.int(index.vector[2], index.vector[3])] <- alpha_beta[index.vector[8]/2] #パラメータのうち曝露のインデックス, 曝露分類未対応
+    i_time <- i_time + 1
+    i_para <- index.vector[1]*(i_time-1)+1
+    alpha_beta_i[seq_len(index.vector[1])]                  <- alpha_beta[seq.int(i_para, i_para+index.vector[1]-1)]
+    alpha_beta_i[seq.int(index.vector[2], index.vector[3])] <- alpha_beta[index.vector[8]/2]
 
     y_0 <- ifelse(epsilon == estimand$code.censoring | t > specific.time, 1, 0)
     y_1 <- ifelse(epsilon == estimand$code.event1 & t <= specific.time, 1, 0)
 
     potential.CIFs <- calculatePotentialRisk(alpha_beta, x_a, x_l, offset, estimand)
-    ey_1 <- potential.CIFs[,2]*a + potential.CIFs[,1]*(one - a) #曝露分類未対応
+    ey_1 <- potential.CIFs[,2]*a + potential.CIFs[,1]*(one - a)
     w11 <- 1 / (ey_1 * (1 - ey_1))
-#    wy_1 <- ip.weight * y_1
     wy_1 <- ip.weight.matrix[,i_time] * y_1
     wy_1ey_1 <- w11*(wy_1 - ey_1)
     d <- cbind(x_l, x_a)
     residual <- wy_1ey_1
-#    ret <- as.vector(t(d) %*% residual / nrow(x_l))
-#    n_col_d <- ncol(d)
-#    score.matrix <- matrix(NA, nrow=nrow(d), ncol=n_col_d)
-#    for (j in seq_len(n_col_d)) {
-#      score.matrix[,j] <- d[,j]*residual
-#    }
 
     subscore <- as.vector(t(d) %*% residual / nrow(x_l))
     tmp1 <- t(subscore[1:index.vector[1]])
     score_beta <- cbind(score_beta, tmp1)
     score_alpha1 <- score_alpha1 + subscore[index.vector[2]:index.vector[3]]
-#    tmp1 <- t(subscore[1:i_parameter[1],])
-#    tmp2 <- t(subscore[i_parameter[4]:i_parameter[5],])
-#    score_beta <- cbind(score_beta, tmp1, tmp2)
-#    score_alpha1 <- score_alpha1 + subscore[i_parameter[2]:i_parameter[3],]
-#    score_alpha2 <- score_alpha2 + subscore[i_parameter[6]:i_parameter[7],]
   }
-#  score <- cbind(score_beta, score_alpha1, score_alpha2)
   score <- cbind(score_beta, score_alpha1)
   out <- list(
     ret   = score,
@@ -574,15 +559,7 @@ estimating_equation_pproportional <- function(
   x_la <- cbind(x_l, x_a)
   index.vector <- estimand$index.vector
 
-  #n_para_1 <- ncol(x_l)
-  #n_para_2 <- n_para_1 + 1
-  #n_para_3 <- n_para_1 + 2
-  #n_para_4 <- 2*n_para_1 + 1
-  #n_para_5 <- 2*n_para_1 + 2
-  #n_para_6 <- length(time.point)*(n_para_5-2) + 2
-
   one <- rep(1, nrow(x_l))
-#  a <- as.vector(x_a)
   score_beta <- NULL
   score_alpha1 <- 0
   score_alpha2 <- 0
@@ -595,10 +572,6 @@ estimating_equation_pproportional <- function(
     alpha_beta_i[seq.int(index.vector[2], index.vector[3])] <- alpha_beta[index.vector[8]/2]
     alpha_beta_i[seq.int(index.vector[4], index.vector[5])] <- alpha_beta[seq.int((index.vector[8]/2+i_para),(index.vector[8]/2+i_para+index.vector[1]-1))]
     alpha_beta_i[seq.int(index.vector[6], index.vector[7])] <- alpha_beta[index.vector[8]]
-    #alpha_beta_i[1:n_para_1]        <- alpha_beta[i_para:(i_para+n_para_1-1)]
-    #alpha_beta_i[n_para_2]          <- alpha_beta[n_para_6/2]
-    #alpha_beta_i[n_para_3:n_para_4] <- alpha_beta[(n_para_6/2+i_para):(n_para_6/2+i_para+n_para_1-1)]
-    #alpha_beta_i[n_para_5]          <- alpha_beta[n_para_6]
 
     y_0 <- ifelse(epsilon == 0 | t > specific.time, 1, 0)
     y_1 <- ifelse(epsilon == 1 & t <= specific.time, 1, 0)
@@ -631,13 +604,7 @@ estimating_equation_pproportional <- function(
     d    <- rbind(tmp1, tmp2)
 
     residual <- c(wy_1ey_1, wy_2ey_2)
-    #subscore <- as.matrix(t(d) %*% residual / nrow(x_l))
     subscore <- crossprod(d, residual) / nrow(x_l)
-    #tmp1 <- t(subscore[1:n_para_1,])
-    #tmp2 <- t(subscore[n_para_3:n_para_4,])
-    #score_beta <- cbind(score_beta, tmp1, tmp2)
-    #score_alpha1 <- score_alpha1 + subscore[n_para_2,]
-    #score_alpha2 <- score_alpha2 + subscore[n_para_5,]
 
     tmp1 <- t(subscore[1:index.vector[1],])
     tmp2 <- t(subscore[index.vector[4]:index.vector[5],])
@@ -658,7 +625,6 @@ estimating_equation_pproportional <- function(
     x_a   = x_a,
     x_l   = x_l
   )
-#  out <- list(ret = score)
   return(out)
 }
 
