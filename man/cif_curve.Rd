@@ -71,11 +71,11 @@ For \code{"SURVIVAL"} typically \code{"greenwood"}; for \code{"COMPETING-RISK"} 
 
 \item{ggsurvfit.type}{\code{NULL} (survival) or \code{"risk"} (display \code{1 - survival} i.e. CIF).}
 
-\item{addConfidenceInterval}{Logical; add \code{add_confidence_interval()} to plot (default \code{TRUE}).}
+\item{addConfidenceInterval}{Logical add \code{add_confidence_interval()} to plot (default \code{TRUE}).}
 
-\item{addRiskTable}{Logical; add \code{add_risktable(risktable_stats="n.risk")} to plot (default \code{TRUE}).}
+\item{addRiskTable}{Logical add \code{add_risktable(risktable_stats="n.risk")} to plot (default \code{TRUE}).}
 
-\item{addCensorMark}{Logical; add \code{add_censor_mark()} to plot (default \code{TRUE}).}
+\item{addCensorMark}{Logical add \code{add_censor_mark()} to plot (default \code{TRUE}).}
 
 \item{addIntercurrentEventMark}{Logical; overlay user-specified time marks per strata (default \code{TRUE}).}
 
