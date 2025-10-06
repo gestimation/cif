@@ -2,7 +2,7 @@
 #' log-odds products
 #' @description Fits regression models and estimates multiplicative effects of
 #' a categorical exposure under several outcome types, including competing risks,
-#' survival and binomial endpoints.
+#' survival and binomial outcomes
 #' @param nuisance.model A \code{\link[stats]{formula}} describing the outcome and
 #'   nuisance covariates, excluding the exposure of interest.
 #' @param exposure A character string giving the name of the binary exposure
@@ -50,11 +50,10 @@
 #'   \code{NULL}, the function chooses based on \code{outcome.type}.
 #' @param boot.bca Logical indicating the bootstrap confidence interval method.
 #'   Use \code{TRUE} for bias-corrected and accelerated intervals or \code{FALSE}
-#'   for the normal approximation.
+#'   for the normal approximation. Defaults to \code{FALSE}.
 #' @param boot.parameter1 Integer giving the number of bootstrap replications.
 #'   Defaults to \code{200}.
-#' @param boot.parameter2 Optional numeric seed used when resampling during
-#'   bootstrap inference.
+#' @param boot.parameter2 Numeric seed used for resampling of bootstrap.
 #' @param nleqslv.method Character string defining the solver used by
 #'   \code{\link[nleqslv]{nleqslv}}. Available choices include \code{"nleqslv"},
 #'   \code{"Broyden"}, \code{"Newton"}, \code{"optim"}, \code{"BFGS"} and
@@ -88,8 +87,10 @@
 #' @param data.initial.values Optional data frame providing starting values for
 #'   the optimisation. Defaults to \code{NULL}.
 #' @param should.normalize.covariate Logical indicating whether covariates should
-#'   be centred and scaled prior to optimisation. Defaults to \code{TRUE}.
-#' @param should.terminate.time.point Logical
+#'   be centred and scaled prior to optimization. Defaults to \code{TRUE}.
+#' @param should.terminate.time.point Logical indicating whether time points
+#'   that contribute estimation are terminated by min of max follow-up times
+#'   of each exposure level. Defaults to \code{TRUE}.
 #' @param prob.bound Numeric lower bound used to truncate probabilities away
 #'   from 0 and 1. Defaults to \code{1e-5}.
 #' @importFrom nleqslv nleqslv
@@ -140,7 +141,7 @@ cif_reg <- function(
     report.optim.convergence = FALSE,
     report.sandwich.conf = TRUE,
     report.boot.conf = NULL,
-    boot.bca = TRUE,
+    boot.bca = FALSE,
     boot.parameter1 = 200,
     boot.parameter2 = 46,
     nleqslv.method = "nleqslv",

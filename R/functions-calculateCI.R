@@ -263,9 +263,6 @@ calcAalenVariance <- function(
   for(i in 1:n){
     index <- min(length(CIF_value)-1, sum(as.numeric((km_time-CIF_time[i])<0)))
     if(index!=0){
-      #      first_cum <- first_cum + ((CIF_value[index+1]-CIF_value[i])^2)*n.event[i]/(n.atrisk[i]-1)/(n.atrisk[i]-n.event[i])
-      #      second_cum <- second_cum + (km_value[index]^2)*(n.event[i])*(n.atrisk[i]-n.event[i])/(n.atrisk[i]^2)/(n.atrisk[i]-1)
-      #      third_cum <- third_cum + ((CIF_value[index+1]-CIF_value[i])*km_value[index]*n.event[i]*(n.atrisk[i]-n.event[i])/n.atrisk[i]/(n.atrisk[i]-sum(n.event[1:i]))/(n.atrisk[i]-1))
       first_cum <- first_cum + ((CIF_value[index+1]-CIF_value[i])^2)*(n.event1[i]+n.event2[i])/(n.atrisk[i]-1)/(n.atrisk[i]-n.event1[i]-n.event2[i])
       second_cum <- second_cum + (km_value[index]^2)*n.event1[i]*(n.atrisk[i]-n.event1[i])/(n.atrisk[i]^2)/(n.atrisk[i]-1)
       third_cum <- third_cum + (CIF_value[index+1]-CIF_value[i])*km_value[index]*n.event1[i]*(n.atrisk[i]-n.event1[i])/n.atrisk[i]/(n.atrisk[i]-n.event1[i]-n.event2[i])/(n.atrisk[i]-1)
@@ -296,13 +293,9 @@ calcDeltaVariance <- function(
   for(i in 1:n){
     index <- min(length(CIF_value)-1, sum(as.numeric((km_time-CIF_time[i])<0)))
     if(index!=0){
-      #      first_cum <- first_cum + ((CIF_value[index+1]-CIF_value[i])^2)*n.event[i]/(n.atrisk[i]-1)/(n.atrisk[i]-n.event[i])
-      #      second_cum <- second_cum + (km_value[index]^2)*(n.event[i])*(n.atrisk[i]-n.event[i])/(n.atrisk[i]^3)
-      #      third_cum <- third_cum + ((CIF_value[index+1]-CIF_value[i])*km_value[index]*n.event[i]/(n.atrisk[i]^3))
       first_cum <- first_cum + ((CIF_value[index+1]-CIF_value[i])^2)*(n.event1[i]+n.event2[i])/n.atrisk[i]/(n.atrisk[i]-n.event1[i]-n.event2[i])
       second_cum <- second_cum + (km_value[index]^2)*(n.event1[i])*(n.atrisk[i]-n.event1[i])/(n.atrisk[i]^3)
       third_cum <- third_cum + ((CIF_value[index+1]-CIF_value[i])*km_value[index]*n.event1[i]/(n.atrisk[i]^2))
-      #      print(CIF_value[index+1]-CIF_value[i])
     }
     first_term[i] <- first_cum
     second_term[i] <- second_cum
