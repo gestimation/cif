@@ -188,87 +188,54 @@ Rcpp::List calculateKM(Rcpp::NumericVector t, Rcpp::IntegerVector d,
 
     Rcpp::IntegerVector strata_vec = strata;
 
-    // Loop over each strata level and calculate the Kaplan-Meier estimate
-    for (int i = 0; i < Rcpp::max(strata_vec); ++i) {
-      // Select the data subset corresponding to the current strata level
-      Rcpp::LogicalVector strata_condition = (strata_vec == (i + 1));
+    Rcpp::IntegerVector levels = Rcpp::sort_unique(strata_vec);
+
+    for (int li = 0; li < levels.size(); ++li) {
+      int level = levels[li];
+      Rcpp::LogicalVector strata_condition = (strata_vec == level);
+
       Rcpp::NumericVector t_selected = t[strata_condition];
       Rcpp::IntegerVector d_selected = d[strata_condition];
 
-      // Calculate weighted_n for this strata (sum of weights in the selected dataset)
       int n_stratum = t_selected.size();
-      double weighted_n_stratum = 0;
-      int n_event_stratum = 0;
-      for (int j = 0; j < n_stratum; ++j) {
-        weighted_n_stratum += d_selected[j];
-        n_event_stratum += d_selected[j];
-      }
 
-      // Calculate Kaplan-Meier for the selected subset
       Rcpp::NumericVector unique_times = Rcpp::unique(t_selected);
       std::sort(unique_times.begin(), unique_times.end());
       int u_stratum = unique_times.size();
 
-      Rcpp::NumericVector km(u_stratum);
-      Rcpp::NumericVector km_i(u_stratum);
+      Rcpp::NumericVector km(u_stratum), km_i(u_stratum), std_err(u_stratum);
+      Rcpp::IntegerVector weighted_n_event(u_stratum), weighted_n_censor(u_stratum);
       Rcpp::IntegerVector weighted_n_risk(u_stratum);
-      Rcpp::IntegerVector weighted_n_event(u_stratum);
-      Rcpp::IntegerVector weighted_n_censor(u_stratum);
-      Rcpp::NumericVector std_err(u_stratum);
 
       for (int j = 0; j < u_stratum; ++j) {
         double time = unique_times[j];
-        double weighted_n_sub = 0;
+        int n_at_risk = 0, n_events = 0;
+
         for (int k = 0; k < t_selected.size(); ++k) {
-          if (t_selected[k] >= time) {
-            weighted_n_sub++;
-          }
+          if (t_selected[k] >= time) n_at_risk++;
+          if (t_selected[k] == time && d_selected[k] == 1) n_events++;
         }
-        weighted_n_risk[j] = weighted_n_sub;
+        weighted_n_risk[j] = n_at_risk;
+        weighted_n_event[j] = n_events;
 
-        double weighted_events = 0;
-        for (int k = 0; k < t_selected.size(); ++k) {
-          if (t_selected[k] == time && d_selected[k] == 1) {
-            weighted_events++;
-          }
-        }
+        km_i[j] = (n_at_risk > 0) ? (1.0 - (double)n_events / (double)n_at_risk) : 1.0;
+        km[j]   = (j == 0) ? km_i[j] : km[j - 1] * km_i[j];
 
-        if (weighted_n_risk[j] > 0) {
-          km_i[j] = 1 - weighted_events / weighted_n_risk[j];
-          weighted_n_event[j] += weighted_events;
-        } else {
-          km_i[j] = 1;
-        }
+        if (j > 0) weighted_n_censor[j-1] = weighted_n_risk[j-1] - weighted_n_risk[j] - weighted_n_event[j-1];
+        if (j == u_stratum - 1) weighted_n_censor[j] = weighted_n_risk[j] - weighted_n_event[j];
 
-        if (j > 0) {
-          weighted_n_censor[j-1] = weighted_n_risk[j-1] - weighted_n_risk[j] - weighted_n_event[j-1];
-        }
-        if (j == u_stratum-1) {
-          weighted_n_censor[j] = weighted_n_risk[j] - weighted_n_event[j];
-        }
-
-        km[j] = (j == 0) ? km_i[j] : km[j - 1] * km_i[j];
-
-        double sum_se = 0;
+        double sum_se = 0.0;
         for (int k = 0; k <= j; ++k) {
-          double n_i = weighted_n_risk[k];
-          double d_i = 0;
-          for (int m = 0; m < t_selected.size(); ++m) {
-            if (t_selected[m] == unique_times[k] && d_selected[m] == 1) {
-              d_i += d_selected[m];
-            }
-          }
+          double n_i = (double)weighted_n_risk[k];
+          double d_i = (double)weighted_n_event[k];
           if (n_i > d_i) {
-            if (error == "tsiatis") {
-              sum_se += (d_i / (n_i * n_i));
-            } else if (error == "greenwood") {
-              sum_se += (d_i / (n_i * (n_i - d_i)));
-            }
+            if (error == "tsiatis")      sum_se += d_i / (n_i * n_i);
+            else /* greenwood */         sum_se += d_i / (n_i * (n_i - d_i));
           } else {
             sum_se = std::numeric_limits<double>::infinity();
           }
         }
-        std_err[j] = sqrt(sum_se);
+        std_err[j] = std::sqrt(sum_se);
       }
 
       combined_times.insert(combined_times.end(), unique_times.begin(), unique_times.end());
@@ -277,96 +244,63 @@ Rcpp::List calculateKM(Rcpp::NumericVector t, Rcpp::IntegerVector d,
       combined_n_event.insert(combined_n_event.end(), weighted_n_event.begin(), weighted_n_event.end());
       combined_n_censor.insert(combined_n_censor.end(), weighted_n_censor.begin(), weighted_n_censor.end());
       combined_std_err.insert(combined_std_err.end(), std_err.begin(), std_err.end());
-      combined_n_stratum.insert(combined_n_stratum.end(), n_stratum);
-      combined_u_stratum.insert(combined_u_stratum.end(), u_stratum);
+      combined_n_stratum.push_back(n_stratum);
+      combined_u_stratum.push_back(u_stratum);
     }
   } else {
 
     Rcpp::IntegerVector strata_vec = strata;
+    Rcpp::IntegerVector levels = Rcpp::sort_unique(strata_vec);
 
-    // Loop over each strata level and calculate the Kaplan-Meier estimate
-    for (int i = 0; i < Rcpp::max(strata_vec); ++i) {
-      // Select the data subset corresponding to the current strata level
-      Rcpp::LogicalVector strata_condition = (strata_vec == (i + 1));  // 1-based indexing for strata
+    for (int li = 0; li < levels.size(); ++li) {
+      int level = levels[li];
+      Rcpp::LogicalVector strata_condition = (strata_vec == level);
+
       Rcpp::NumericVector t_selected = t[strata_condition];
       Rcpp::IntegerVector d_selected = d[strata_condition];
       Rcpp::NumericVector w_selected = w[strata_condition];
 
-      // Calculate weighted_n for this strata (sum of weights in the selected dataset)
       int n_stratum = t_selected.size();
-      double weighted_n_stratum = 0;
-      int n_event_stratum = 0;
-      for (int j = 0; j < n_stratum; ++j) {
-        weighted_n_stratum += w_selected[j];
-        n_event_stratum += d_selected[j];
-      }
 
-      // Calculate Kaplan-Meier for the selected subset
       Rcpp::NumericVector unique_times = Rcpp::unique(t_selected);
       std::sort(unique_times.begin(), unique_times.end());
       int u_stratum = unique_times.size();
 
-      Rcpp::NumericVector km(u_stratum);
-      Rcpp::NumericVector km_i(u_stratum);
-      Rcpp::IntegerVector weighted_n_risk(u_stratum);
-      Rcpp::IntegerVector weighted_n_event(u_stratum);
-      Rcpp::IntegerVector weighted_n_censor(u_stratum);
-      Rcpp::NumericVector std_err(u_stratum);
+      Rcpp::NumericVector km(u_stratum), km_i(u_stratum), std_err(u_stratum);
+      Rcpp::NumericVector weighted_n_risk(u_stratum), weighted_n_event(u_stratum), weighted_n_censor(u_stratum);
 
       for (int j = 0; j < u_stratum; ++j) {
         double time = unique_times[j];
+        double n_at_risk = 0.0, w_events = 0.0;
 
-        double weighted_n_sub = 0;
         for (int k = 0; k < t_selected.size(); ++k) {
-          if (t_selected[k] >= time) {
-            weighted_n_sub += w_selected[k];
-          }
+          if (t_selected[k] >= time) n_at_risk += w_selected[k];
+          if (t_selected[k] == time && d_selected[k] == 1) w_events += w_selected[k];
         }
-        weighted_n_risk[j] = weighted_n_sub;
+        weighted_n_risk[j]  = n_at_risk;
+        weighted_n_event[j] = w_events;
 
-        double weighted_events = 0;
-        for (int k = 0; k < t_selected.size(); ++k) {
-          if (t_selected[k] == time && d_selected[k] == 1) {
-            weighted_events += w_selected[k];
-          }
-        }
+        km_i[j] = (n_at_risk > 0.0) ? (1.0 - w_events / n_at_risk) : 1.0;
+        km[j]   = (j == 0) ? km_i[j] : km[j - 1] * km_i[j];
 
-        if (weighted_n_risk[j] > 0) {
-          km_i[j] = 1 - weighted_events / weighted_n_risk[j];
-          weighted_n_event[j] += weighted_events;
-        } else {
-          km_i[j] = 1;
-        }
+        if (j > 0) weighted_n_censor[j-1] = weighted_n_risk[j-1] - weighted_n_risk[j] - weighted_n_event[j-1];
+        if (j == u_stratum - 1) weighted_n_censor[j] = weighted_n_risk[j] - weighted_n_event[j];
 
-        if (j > 0) {
-          weighted_n_censor[j-1] = weighted_n_risk[j-1]-weighted_n_risk[j] - weighted_n_event[j-1];
-        }
-        if (j == u_stratum-1) {
-          weighted_n_censor[j] = weighted_n_risk[j] - weighted_n_event[j];
-        }
-
-        km[j] = (j == 0) ? km_i[j] : km[j - 1] * km_i[j];
-
-        double sum_se = 0;
+        double sum_se = 0.0;
         for (int k = 0; k <= j; ++k) {
           double n_i = weighted_n_risk[k];
-          double d_i = 0;
+          double d_i = 0.0;
           for (int m = 0; m < t_selected.size(); ++m) {
-            if (t_selected[m] == unique_times[k] && d_selected[m] == 1) {
-              d_i += w_selected[m];
-            }
+            if (t_selected[m] == unique_times[k] && d_selected[m] == 1) d_i += w_selected[m];
           }
           if (n_i > d_i) {
-            if (error == "tsiatis") {
-              sum_se += (d_i / (n_i * n_i));
-            } else if (error == "greenwood") {
-              sum_se += (d_i / (n_i * (n_i - d_i)));
-            }
+            if (error == "tsiatis")      sum_se += d_i / (n_i * n_i);
+            else /* greenwood */         sum_se += d_i / (n_i * (n_i - d_i));
           } else {
             sum_se = std::numeric_limits<double>::infinity();
           }
         }
-        std_err[j] = sqrt(sum_se);
+        std_err[j] = std::sqrt(sum_se);
       }
 
       combined_times.insert(combined_times.end(), unique_times.begin(), unique_times.end());
@@ -375,8 +309,8 @@ Rcpp::List calculateKM(Rcpp::NumericVector t, Rcpp::IntegerVector d,
       combined_n_event.insert(combined_n_event.end(), weighted_n_event.begin(), weighted_n_event.end());
       combined_n_censor.insert(combined_n_censor.end(), weighted_n_censor.begin(), weighted_n_censor.end());
       combined_std_err.insert(combined_std_err.end(), std_err.begin(), std_err.end());
-      combined_n_stratum.insert(combined_n_stratum.end(), n_stratum);
-      combined_u_stratum.insert(combined_u_stratum.end(), u_stratum);
+      combined_n_stratum.push_back(n_stratum);
+      combined_u_stratum.push_back(u_stratum);
     }
   }
 

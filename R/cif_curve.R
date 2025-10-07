@@ -464,19 +464,51 @@ calculateAJ <- function(data) {
   )
 }
 
-get_surv <- function(predicted.time, estimated.surv, estimated.time, predicted.strata=NULL, estimated.strata=NULL) {
-  predicted.surv <- numeric(length(predicted.time))
-  strata_start <- c(1, head(cumsum(estimated.strata), -1) + 1)
-  strata_end <- cumsum(estimated.strata)
+get_surv <- function(
+    predicted.time,
+    estimated.surv,
+    estimated.time,
+    predicted.strata = NULL,
+    estimated.strata = NULL
+){
   if (any(is.na(predicted.time)))
     stop("Invalid predicted time variable. NA values included")
+  if (length(estimated.surv) != length(estimated.time))
+    stop("estimated.surv and estimated.time must have the same length.")
+
+  n_pred <- length(predicted.time)
+  predicted.surv <- numeric(n_pred)
+
+  has_strata <- !(is.null(estimated.strata) || all(is.na(estimated.strata)))
+
+  if (has_strata) {
+    if (sum(estimated.strata) != length(estimated.time)) {
+      stop("sum(estimated.strata) must equal length(estimated.time).")
+    }
+    strata_start <- c(1, head(cumsum(estimated.strata), -1) + 1)
+    strata_end   <- cumsum(estimated.strata)
+  }
+
+  if (is.null(predicted.strata)) {
+    predicted.strata <- rep(1L, n_pred)
+  } else if (length(predicted.strata) == 1L) {
+    predicted.strata <- rep(predicted.strata, n_pred)
+  }
+
+  if (has_strata) {
+    K <- length(estimated.strata)
+    if (!all(is.na(predicted.strata))) {
+      if (min(predicted.strata, na.rm = TRUE) == 0L &&
+          max(predicted.strata, na.rm = TRUE) == (K - 1L)) {
+        predicted.strata <- predicted.strata + 1L
+      }
+    }
+  }
 
   for (i in seq_along(predicted.time)) {
     t <- predicted.time[i]
-    strata_size <- estimated.strata[predicted.strata[i]]
 
-    if (is.null(estimated.strata)|all(is.na(estimated.strata))) {
-      #      time_until_t <- estimated.time[estimated.time <= t]
+    if (!has_strata) {
       time_until_t <- estimated.time[estimated.time < t]
       if (length(time_until_t) > 0) {
         time_index <- which.max(time_until_t)
@@ -484,24 +516,33 @@ get_surv <- function(predicted.time, estimated.surv, estimated.time, predicted.s
       } else {
         predicted.surv[i] <- 1
       }
-    } else if (strata_size > 0|all(is.na(estimated.strata))) {
-      strata_indices <- strata_start[predicted.strata[i]]:strata_end[predicted.strata[i]]
-      strata_time <- estimated.time[strata_indices]
-      strata_surv <- estimated.surv[strata_indices]
 
-      #      time_until_t <- strata_time[strata_time <= t]
-      time_until_t <- strata_time[strata_time < t]
-
-      if (length(time_until_t) > 0) {
-        time_index <- which.max(time_until_t)
-        predicted.surv[i] <- strata_surv[time_index]
-      } else {
-        predicted.surv[i] <- 1
-      }
     } else {
-      predicted.surv[i] <- NA
+      s <- predicted.strata[i]
+
+      if (is.na(s) || s < 1L || s > length(estimated.strata)) {
+        predicted.surv[i] <- NA_real_
+        next
+      }
+
+      strata_size <- estimated.strata[s]
+
+      if (strata_size > 0 || all(is.na(estimated.strata))) {
+        strata_indices <- strata_start[s]:strata_end[s]
+        strata_time <- estimated.time[strata_indices]
+        strata_surv <- estimated.surv[strata_indices]
+        time_until_t <- strata_time[strata_time < t]
+
+        if (length(time_until_t) > 0) {
+          time_index <- which.max(time_until_t)
+          predicted.surv[i] <- strata_surv[time_index]
+        } else {
+          predicted.surv[i] <- 1
+        }
+      } else {
+        predicted.surv[i] <- NA_real_
+      }
     }
   }
   return(predicted.surv)
 }
-
