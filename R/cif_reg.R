@@ -503,12 +503,12 @@ cif_reg <- function(
     out_bootstrap, out_getResults, iteration, converged.by, objective.function, max.absolute.difference, relative.difference,
     out_nleqslv, conf.level, optim.method$nleqslv.method
   )
-  out_data <- normalized_data
   if (outcome.type == "COMPETING-RISK" || outcome.type == "SURVIVAL" || outcome.type == "BINOMIAL") {
     normalized_data$influence.function <- out_calculateCov$influence.function
     normalized_data$ip.weight <- out_getResults$ip.weight
     normalized_data$potential.CIFs <- out_getResults$potential.CIFs
   }
+  out_data <- normalized_data
   out <- list(summary=out_summary, coefficient=alpha_beta_estimated, cov=cov_estimated, bootstrap=out_bootstrap, diagnosis.statistics=out_data, optimization.info=trace_df)
   return(out)
 }
