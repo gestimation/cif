@@ -36,7 +36,8 @@ cif_curve(
   size.intercurrent.event.mark = 2,
   font.family = "sans",
   font.size = 14,
-  legend.position = "top"
+  legend.position = "top",
+  filename = NULL
 )
 }
 \arguments{
@@ -82,9 +83,9 @@ For \code{"SURVIVAL"} typically \code{"greenwood"}; for \code{"COMPETING-RISK"} 
 \item{label.x, label.y}{Axis labels (defaults: \code{"Time"}, \code{"Survival probability"}).
 If \code{ggsurvfit.type="risk"} and \code{label.y} is unchanged, it is internally set to \code{"1 - survival probability"}.}
 
-\item{label.strata}{Optional character vector of labels for strata.}
+\item{label.strata}{Character vector of labels for strata.}
 
-\item{lims.x, lims.y}{Numeric length-2 vectors for axis limits (defaults: \code{NULL}, \code{c(0,1)}).}
+\item{lims.x, }{lims.y Numeric length-2 vectors for axis limits (defaults: \code{NULL}, \code{c(0,1)}).}
 
 \item{shape.censor.mark}{Integer point shape for censor marks (default \code{3}).}
 
@@ -96,9 +97,11 @@ If \code{ggsurvfit.type="risk"} and \code{label.y} is unchanged, it is internall
 
 \item{size.intercurrent.event.mark}{Numeric point size for intercurrent-event marks (default \code{2}).}
 
-\item{font.family, font.size}{Plot theme controls (defaults: \code{"sans"}, \code{14}).}
+\item{font.family, }{font.size Plot theme controls (defaults: \code{"sans"}, \code{14}).}
 
 \item{legend.position}{Legend position: \code{"top"}, \code{"right"}, \code{"bottom"}, \code{"left"}, or \code{"none"} (default \code{"top"}).}
+
+\item{filename}{Character specify the name of the graph output.}
 }
 \value{
 A \code{survfit} object. For \code{outcome.type="SURVIVAL"}, \code{$surv} is the survival function.

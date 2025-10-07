@@ -45,12 +45,13 @@
 #' @param intercurrent.event.time Named list of numeric vectors (names must match or be mapped to strata labels).
 #' @param shape.intercurrent.event.mark Integer point shape for intercurrent-event marks (default \code{16}).
 #' @param size.intercurrent.event.mark Numeric point size for intercurrent-event marks (default \code{2}).
-#' @param label.strata Optional character vector of labels for strata.
+#' @param label.strata Character vector of labels for strata.
 #' @param label.x,label.y Axis labels (defaults: \code{"Time"}, \code{"Survival probability"}).
 #'   If \code{ggsurvfit.type="risk"} and \code{label.y} is unchanged, it is internally set to \code{"1 - survival probability"}.
-#' @param lims.x,lims.y Numeric length-2 vectors for axis limits (defaults: \code{NULL}, \code{c(0,1)}).
-#' @param font.family,font.size Plot theme controls (defaults: \code{"sans"}, \code{14}).
+#' @param lims.x, lims.y Numeric length-2 vectors for axis limits (defaults: \code{NULL}, \code{c(0,1)}).
+#' @param font.family, font.size Plot theme controls (defaults: \code{"sans"}, \code{14}).
 #' @param legend.position Legend position: \code{"top"}, \code{"right"}, \code{"bottom"}, \code{"left"}, or \code{"none"} (default \code{"top"}).
+#' @param filename Character specify the name of the graph output.
 #'
 #' @returns A \code{survfit} object. For \code{outcome.type="SURVIVAL"}, \code{$surv} is the survival function.
 #' For \code{outcome.type="COMPETING-RISK"}, \code{$surv} equals \code{1 - CIF} for \code{code.event1}.
@@ -66,7 +67,7 @@
 #'                     label.y = 'CIF of diabetic retinopathy', label.x = 'Years from registration')
 #'
 #' @importFrom ggsurvfit ggsurvfit add_confidence_interval add_risktable add_censor_mark
-#' @importFrom ggplot2 theme_classic theme element_text labs lims geom_point aes
+#' @importFrom ggplot2 theme_classic theme element_text labs lims geom_point aes ggsave
 #' @importFrom Rcpp sourceCpp
 #' @useDynLib cif, .registration = TRUE
 #' @export
@@ -102,7 +103,8 @@ cif_curve <- function(formula,
                            size.intercurrent.event.mark = 2,
                            font.family = "sans",
                            font.size = 14,
-                           legend.position = "top") {
+                           legend.position = "top",
+                           filename = NULL) {
   outcome.type <- check_outcome.type(outcome.type)
   out_readSurv <- readSurv(formula, data, weights, code.event1, code.event2, code.censoring, subset.condition, na.action)
   error <- check_error(error, outcome.type)
@@ -180,7 +182,7 @@ cif_curve <- function(formula,
     class(survfit_object) <- c("survfit")
   }
 
-  if (report.ggsurvfit) {
+  if (report.ggsurvfit || !is.null(filename)) {
     out_ggsurvfit <- call_ggsurvfit(
       survfit_object = survfit_object,
       out_readSurv   = out_readSurv,
@@ -200,7 +202,12 @@ cif_curve <- function(formula,
       font.family = font.family, font.size = font.size,
       legend.position = legend.position
     )
-    print(out_ggsurvfit)
+    if (report.ggsurvfit) {
+      print(out_ggsurvfit)
+    }
+    if (!is.null(filename)) {
+      ggsave(filename, plot = out_ggsurvfit, width = 6, height = 6, dpi = 300)
+    }
   }
   return(survfit_object)
 }

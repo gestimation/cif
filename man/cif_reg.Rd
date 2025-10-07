@@ -25,7 +25,7 @@ cif_reg(
   report.optim.convergence = FALSE,
   report.sandwich.conf = TRUE,
   report.boot.conf = NULL,
-  boot.bca = TRUE,
+  boot.bca = FALSE,
   boot.parameter1 = 200,
   boot.parameter2 = 46,
   nleqslv.method = "nleqslv",
@@ -115,13 +115,12 @@ confidence intervals are computed. When \code{FALSE}, they are omitted. If
 
 \item{boot.bca}{Logical indicating the bootstrap confidence interval method.
 Use \code{TRUE} for bias-corrected and accelerated intervals or \code{FALSE}
-for the normal approximation.}
+for the normal approximation. Defaults to \code{FALSE}.}
 
 \item{boot.parameter1}{Integer giving the number of bootstrap replications.
 Defaults to \code{200}.}
 
-\item{boot.parameter2}{Optional numeric seed used when resampling during
-bootstrap inference.}
+\item{boot.parameter2}{Numeric seed used for resampling of bootstrap.}
 
 \item{nleqslv.method}{Character string defining the solver used by
 \code{\link[nleqslv]{nleqslv}}. Available choices include \code{"nleqslv"},
@@ -171,9 +170,11 @@ when the Levenberg-Marquardt step is unsuccessful. Defaults to \code{0.5}.}
 the optimisation. Defaults to \code{NULL}.}
 
 \item{should.normalize.covariate}{Logical indicating whether covariates should
-be centred and scaled prior to optimisation. Defaults to \code{TRUE}.}
+be centred and scaled prior to optimization. Defaults to \code{TRUE}.}
 
-\item{should.terminate.time.point}{Logical}
+\item{should.terminate.time.point}{Logical indicating whether time points
+that contribute estimation are terminated by min of max follow-up times
+of each exposure level. Defaults to \code{TRUE}.}
 
 \item{prob.bound}{Numeric lower bound used to truncate probabilities away
 from 0 and 1. Defaults to \code{1e-5}.}
@@ -190,7 +191,7 @@ outcomes).
 \description{
 Fits regression models and estimates multiplicative effects of
 a categorical exposure under several outcome types, including competing risks,
-survival and binomial endpoints.
+survival and binomial outcomes
 }
 \examples{
 data(diabetes.complications)
